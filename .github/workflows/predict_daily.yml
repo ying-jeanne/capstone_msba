@@ -1,0 +1,45 @@
+name: Update Daily Predictions
+
+on:
+  schedule:
+    # Run every day at 6 PM UTC (after markets close)
+    - cron: '0 18 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  predict-daily:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Generate Daily Predictions
+      run: |
+        echo "Generating daily predictions (1d, 3d, 7d)..."
+        python utils/predict_daily.py
+        
+    - name: Commit and push predictions
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add data/predictions/
+        git diff --quiet && git diff --staged --quiet || (git commit -m "📊 Daily predictions - $(date +'%Y-%m-%d %H:%M UTC')" && git push)

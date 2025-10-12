@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}Live Performance - Bitcoin Price Prediction{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Live Performance & Blockchain Validation</h1>
+    <p class="page-subtitle">Real-world predictions with immutable on-chain proof</p>
+</div>
+
+<!-- Current Status -->
+<section class="live-status-section">
+    <h2>Current Bitcoin Price</h2>
+    <div class="live-price-card live-price-card-bg" style="background-image: url('{{ url_for('static', filename='images/bitcoin1.jpg') }}');">
+        <div class="price-display">
+            <span class="price-label">BTC/USD</span>
+            <span class="price-value" id="currentPrice">${{ "%.2f"|format(summary.current_price) }}</span>
+            <span class="price-timestamp">Last updated: {{ summary.timestamp }}</span>
+        </div>
+        <button class="btn btn-refresh" onclick="refreshPrice()">🔄 Refresh Price</button>
+    </div>
+</section>
+
+<!-- Live Performance Summary -->
+<section class="performance-summary">
+    <h2>Live Performance Metrics (Last 7 Days)</h2>
+    <div class="metrics-grid-large">
+        <div class="metric-card live">
+            <div class="metric-icon">📊</div>
+            <div class="metric-value">{{ "%.2f"|format(summary.avg_mape_7d) }}%</div>
+            <div class="metric-label">Average MAPE</div>
+            <div class="metric-info">
+                Test set: 1.16% |
+                {% if summary.avg_mape_7d < 2.0 %}
+                <span class="status-good">✅ Excellent</span>
+                {% elif summary.avg_mape_7d < 3.0 %}
+                <span class="status-medium">⚠️ Good</span>
+                {% else %}
+                <span class="status-poor">❌ Needs attention</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="metric-card live">
+            <div class="metric-icon">🔮</div>
+            <div class="metric-value">{{ summary.total_predictions }}</div>
+            <div class="metric-label">Total Predictions Stored</div>
+            <div class="metric-info">All predictions immutably stored on blockchain</div>
+        </div>
+
+        <div class="metric-card live">
+            <div class="metric-icon">⛓️</div>
+            <div class="metric-value">100%</div>
+            <div class="metric-label">Blockchain Verified</div>
+            <div class="metric-info">Every prediction is cryptographically verifiable</div>
+        </div>
+
+        <div class="metric-card live">
+            <div class="metric-icon">📈</div>
+            <div class="metric-value">Daily</div>
+            <div class="metric-label">Update Frequency</div>
+            <div class="metric-info">New prediction every 24 hours</div>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison: Test vs Live -->
+<section class="test-vs-live-section">
+    <div class="card highlight-card">
+        <h2>Model Consistency: Test vs Live Performance</h2>
+        <p class="section-intro">Comparing performance on test set (historical data) vs live predictions (real-world deployment)</p>
+
+        <div class="comparison-grid">
+            <div class="comparison-card">
+                <h3>Test Set (Historical)</h3>
+                <div class="comparison-metrics">
+                    <div class="comparison-metric">
+                        <span class="metric-name">MAPE:</span>
+                        <span class="metric-val">1.16%</span>
+                    </div>
+                    <div class="comparison-metric">
+                        <span class="metric-name">R² Score:</span>
+                        <span class="metric-val">0.865</span>
+                    </div>
+                    <div class="comparison-metric">
+                        <span class="metric-name">Dir. Accuracy:</span>
+                        <span class="metric-val">68.5%</span>
+                    </div>
+                </div>
+                <p class="comparison-note">Validated on 15% held-out test data</p>
+            </div>
+
+            <div class="comparison-arrow">
+                <span>vs</span>
+            </div>
+
+            <div class="comparison-card live-card">
+                <h3>Live Performance</h3>
+                <div class="comparison-metrics">
+                    <div class="comparison-metric">
+                        <span class="metric-name">MAPE:</span>
+                        <span class="metric-val">{{ "%.2f"|format(summary.avg_mape_7d) }}%</span>
+                    </div>
+                    <div class="comparison-metric">
+                        <span class="metric-name">R² Score:</span>
+                        <span class="metric-val" id="liveR2">Loading...</span>
+                    </div>
+                    <div class="comparison-metric">
+                        <span class="metric-name">Dir. Accuracy:</span>
+                        <span class="metric-val" id="liveDirAcc">Loading...</span>
+                    </div>
+                </div>
+                <p class="comparison-note">Real-world predictions (last 7 days)</p>
+            </div>
+        </div>
+
+        <div class="consistency-verdict">
+            {% if summary.avg_mape_7d < 2.0 %}
+            <div class="verdict-good">
+                <h4>✅ Excellent Consistency</h4>
+                <p>Live performance matches or exceeds test set results. Model is reliable in production.</p>
+            </div>
+            {% elif summary.avg_mape_7d < 3.0 %}
+            <div class="verdict-medium">
+                <h4>⚠️ Good Consistency</h4>
+                <p>Live performance is slightly lower than test set but still acceptable. Monitoring recommended.</p>
+            </div>
+            {% else %}
+            <div class="verdict-poor">
+                <h4>❌ Performance Degradation Detected</h4>
+                <p>Live performance significantly worse than test set. Model may need retraining with recent data.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Blockchain Integration -->
+<section class="blockchain-section">
+    <h2>Smart Contract Integration</h2>
+    <p class="section-intro">Every prediction is stored on the blockchain for transparency and immutability. No one can retroactively change or hide predictions.</p>
+
+    {% if summary.latest_prediction %}
+    <div class="latest-prediction-card">
+        <h3>Latest On-Chain Prediction</h3>
+        <div class="prediction-details">
+            <div class="detail-row">
+                <strong>Date:</strong>
+                <span>{{ summary.latest_prediction.date }}</span>
+            </div>
+            <div class="detail-row">
+                <strong>Current Price (at prediction):</strong>
+                <span>${{ "%.2f"|format(summary.latest_prediction.current_price) }}</span>
+            </div>
+            <div class="detail-row">
+                <strong>Predicted Price (1-day):</strong>
+                <span>${{ "%.2f"|format(summary.latest_prediction.predicted_price_1d) }}</span>
+            </div>
+            <div class="detail-row">
+                <strong>Actual Price (1-day later):</strong>
+                <span>${{ "%.2f"|format(summary.latest_prediction.actual_price_1d) }}</span>
+            </div>
+            <div class="detail-row">
+                <strong>Error:</strong>
+                <span>${{ "%.2f"|format(summary.latest_prediction.error) }} ({{ "%.2f"|format(summary.latest_prediction.mape) }}%)</span>
+            </div>
+            <div class="detail-row blockchain-proof">
+                <strong>Transaction Hash:</strong>
+                <span class="hash-value">{{ summary.latest_prediction.transaction_hash[:20] }}...
+                    <a href="https://etherscan.io/tx/{{ summary.latest_prediction.transaction_hash }}" target="_blank" class="blockchain-link">
+                        View on Etherscan →
+                    </a>
+                </span>
+            </div>
+            <div class="detail-row blockchain-proof">
+                <strong>Block Number:</strong>
+                <span>{{ "{:,}".format(summary.latest_prediction.block_number) }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="blockchain-benefits blockchain-benefits-bg" style="background-image: url('{{ url_for('static', filename='images/bitcoin2.jpg') }}');">
+        <h3>Why Blockchain?</h3>
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <div class="benefit-icon">🔒</div>
+                <h4>Immutability</h4>
+                <p>Once stored, predictions cannot be altered or deleted. Provides cryptographic proof of our model's performance.</p>
+            </div>
+            <div class="benefit-card">
+                <div class="benefit-icon">👁️</div>
+                <h4>Transparency</h4>
+                <p>Anyone can verify our predictions and actual outcomes. No cherry-picking good results.</p>
+            </div>
+            <div class="benefit-card">
+                <div class="benefit-icon">⏰</div>
+                <h4>Timestamping</h4>
+                <p>Blockchain timestamp proves predictions were made before actual outcomes were known.</p>
+            </div>
+            <div class="benefit-card">
+                <div class="benefit-icon">📊</div>
+                <h4>Performance Tracking</h4>
+                <p>Historical predictions enable long-term performance analysis and model validation.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Historical Predictions Chart -->
+<section class="historical-section">
+    <h2>Historical Predictions vs Actual Prices</h2>
+    <div class="chart-header-image" style="background-image: url('{{ url_for('static', filename='images/bitcoin3.jpg') }}');"></div>
+    <div class="chart-container-large">
+        <canvas id="historicalChart"></canvas>
+    </div>
+
+    <div class="chart-controls">
+        <button class="btn btn-small" onclick="changeTimeRange(7)">Last 7 Days</button>
+        <button class="btn btn-small btn-active" onclick="changeTimeRange(30)">Last 30 Days</button>
+        <button class="btn btn-small" onclick="changeTimeRange(90)">Last 90 Days</button>
+    </div>
+</section>
+
+<!-- Predictions Table -->
+<section class="predictions-table-section">
+    <h2>All Blockchain-Stored Predictions</h2>
+    <p class="section-intro">Showing last 30 predictions (scroll for more)</p>
+
+    <div class="table-container">
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Current Price</th>
+                    <th>Predicted (1d)</th>
+                    <th>Actual (1d)</th>
+                    <th>Error</th>
+                    <th>MAPE</th>
+                    <th>Blockchain Proof</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pred in predictions[-30:]|reverse %}
+                <tr>
+                    <td>{{ pred.date }}</td>
+                    <td>${{ "%.2f"|format(pred.current_price) }}</td>
+                    <td>${{ "%.2f"|format(pred.predicted_price_1d) }}</td>
+                    <td>${{ "%.2f"|format(pred.actual_price_1d) }}</td>
+                    <td>${{ "%.2f"|format(pred.error) }}</td>
+                    <td>
+                        {% if pred.mape < 2.0 %}
+                        <span class="status-good">{{ "%.2f"|format(pred.mape) }}%</span>
+                        {% elif pred.mape < 4.0 %}
+                        <span class="status-medium">{{ "%.2f"|format(pred.mape) }}%</span>
+                        {% else %}
+                        <span class="status-poor">{{ "%.2f"|format(pred.mape) }}%</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="https://etherscan.io/tx/{{ pred.transaction_hash }}" target="_blank" class="hash-link">
+                            {{ pred.transaction_hash[:10] }}...
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Performance Over Time -->
+<section class="performance-over-time">
+    <h2>Performance Metrics Over Time</h2>
+    <div class="metrics-charts-grid">
+        <div class="chart-container">
+            <h3>Rolling 7-Day MAPE</h3>
+            <canvas id="rollingMAPEChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Directional Accuracy Trend</h3>
+            <canvas id="dirAccTrendChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<!-- Future Plans -->
+<section class="future-plans-section">
+    <div class="card future-plans-bg" style="background-image: url('{{ url_for('static', filename='images/bitcoin4.jpg') }}');">
+        <h2>Future Enhancements</h2>
+        <div class="plans-grid">
+            <div class="plan-card">
+                <h3>🔄 15-Minute Predictions</h3>
+                <p>Higher frequency predictions for intraday trading strategies</p>
+            </div>
+            <div class="plan-card">
+                <h3>🤖 Automated Trading</h3>
+                <p>Smart contract-based automated execution of trading signals</p>
+            </div>
+            <div class="plan-card">
+                <h3>📱 Mobile App</h3>
+                <p>Real-time notifications and portfolio tracking</p>
+            </div>
+            <div class="plan-card">
+                <h3>🔍 Model Ensemble</h3>
+                <p>Combine multiple models for improved accuracy</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="nav-buttons">
+    <a href="{{ url_for('results') }}" class="btn btn-secondary">← Back: Test Results</a>
+    <a href="{{ url_for('methodology') }}" class="btn btn-secondary">Back to Methodology</a>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const predictionsData = {{ predictions|tojson }};
+
+// Refresh price function
+async function refreshPrice() {
+    try {
+        const response = await fetch('/api/latest-price');
+        const data = await response.json();
+        if (data.status === 'success') {
+            document.getElementById('currentPrice').textContent = `$${data.data.price.toFixed(2)}`;
+        }
+    } catch (error) {
+        console.error('Error refreshing price:', error);
+    }
+}
+
+// Historical predictions chart
+const historicalCtx = document.getElementById('historicalChart').getContext('2d');
+const historicalChart = new Chart(historicalCtx, {
+    type: 'line',
+    data: {
+        labels: predictionsData.map(p => p.date),
+        datasets: [
+            {
+                label: 'Predicted Price',
+                data: predictionsData.map(p => p.predicted_price_1d),
+                borderColor: '#6366f1',
+                backgroundColor: '#6366f180',
+                borderWidth: 2,
+                tension: 0.1
+            },
+            {
+                label: 'Actual Price',
+                data: predictionsData.map(p => p.actual_price_1d),
+                borderColor: '#f59e0b',
+                backgroundColor: '#f59e0b80',
+                borderWidth: 2,
+                tension: 0.1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            title: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                title: { display: true, text: 'Price ($)' }
+            }
+        }
+    }
+});
+
+// Rolling MAPE chart
+const rollingMAPECtx = document.getElementById('rollingMAPEChart').getContext('2d');
+new Chart(rollingMAPECtx, {
+    type: 'line',
+    data: {
+        labels: predictionsData.map(p => p.date),
+        datasets: [{
+            label: 'MAPE (%)',
+            data: predictionsData.map(p => p.mape),
+            borderColor: '#10b981',
+            backgroundColor: '#10b98180',
+            borderWidth: 2,
+            tension: 0.1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: 'MAPE (%)' }
+            }
+        }
+    }
+});
+
+// Calculate directional accuracy
+const dirAccData = predictionsData.map((p, idx) => {
+    if (idx === 0) return null;
+    const prevPrice = predictionsData[idx - 1].current_price;
+    const actualDirection = p.actual_price_1d > p.current_price ? 1 : -1;
+    const predictedDirection = p.predicted_price_1d > p.current_price ? 1 : -1;
+    return actualDirection === predictedDirection ? 100 : 0;
+});
+
+// Directional accuracy trend
+const dirAccTrendCtx = document.getElementById('dirAccTrendChart').getContext('2d');
+new Chart(dirAccTrendCtx, {
+    type: 'line',
+    data: {
+        labels: predictionsData.map(p => p.date),
+        datasets: [{
+            label: 'Correct Direction (%)',
+            data: dirAccData,
+            borderColor: '#ef4444',
+            backgroundColor: '#ef444480',
+            borderWidth: 2,
+            stepped: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                min: 0,
+                max: 100,
+                title: { display: true, text: 'Correct (%)' }
+            }
+        }
+    }
+});
+
+// Calculate and display live R² and directional accuracy
+function calculateLiveMetrics() {
+    const actualPrices = predictionsData.slice(-7).map(p => p.actual_price_1d);
+    const predictedPrices = predictionsData.slice(-7).map(p => p.predicted_price_1d);
+
+    // Calculate R²
+    const meanActual = actualPrices.reduce((a, b) => a + b, 0) / actualPrices.length;
+    const ssTotal = actualPrices.reduce((sum, val) => sum + Math.pow(val - meanActual, 2), 0);
+    const ssRes = actualPrices.reduce((sum, val, idx) => sum + Math.pow(val - predictedPrices[idx], 2), 0);
+    const r2 = 1 - (ssRes / ssTotal);
+
+    // Calculate directional accuracy
+    let correct = 0;
+    for (let i = 1; i < predictionsData.slice(-7).length; i++) {
+        const p = predictionsData.slice(-7)[i];
+        const actualDir = p.actual_price_1d > p.current_price ? 1 : -1;
+        const predDir = p.predicted_price_1d > p.current_price ? 1 : -1;
+        if (actualDir === predDir) correct++;
+    }
+    const dirAcc = (correct / (predictionsData.slice(-7).length - 1)) * 100;
+
+    document.getElementById('liveR2').textContent = r2.toFixed(3);
+    document.getElementById('liveDirAcc').textContent = dirAcc.toFixed(1) + '%';
+}
+
+calculateLiveMetrics();
+
+// Time range change function
+function changeTimeRange(days) {
+    // Filter data and update chart
+    const filteredData = predictionsData.slice(-days);
+    historicalChart.data.labels = filteredData.map(p => p.date);
+    historicalChart.data.datasets[0].data = filteredData.map(p => p.predicted_price_1d);
+    historicalChart.data.datasets[1].data = filteredData.map(p => p.actual_price_1d);
+    historicalChart.update();
+
+    // Update active button
+    document.querySelectorAll('.chart-controls .btn').forEach(btn => btn.classList.remove('btn-active'));
+    event.target.classList.add('btn-active');
+}
+</script>
+{% endblock %}

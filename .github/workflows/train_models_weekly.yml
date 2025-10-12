@@ -1,0 +1,56 @@
+name: Train Models Weekly
+
+on:
+  schedule:
+    # Run every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  train-models:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Train Daily Models
+      run: |
+        echo "Training daily models (1d, 3d, 7d)..."
+        python utils/train_daily_models.py
+        
+    - name: Train Hourly Models
+      run: |
+        echo "Training hourly models (1h, 6h, 24h)..."
+        python utils/train_hourly_models.py
+        
+    - name: Train 15-Min Models
+      run: |
+        echo "Training 15-min models (15m, 1h, 4h)..."
+        python utils/train_15min_models.py
+        
+    - name: Commit and push trained models
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add models/saved_models/
+        git add results/*_models_metrics.csv
+        git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Weekly model training - $(date +'%Y-%m-%d')" && git push)

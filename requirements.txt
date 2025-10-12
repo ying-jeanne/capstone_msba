@@ -1,0 +1,15 @@
+pandas
+yfinance
+pycoingecko
+python-binance
+scikit-learn
+joblib
+matplotlib
+ta
+cryptography
+aiohttp
+numpy
+flask
+xgboost
+web3
+python-binance

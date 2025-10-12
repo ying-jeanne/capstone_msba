@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Methodology - Bitcoin Price Prediction{% endblock %}
+
+{% block content %}
+<div class="page-header page-header-with-bg" style="background-image: url('{{ url_for('static', filename='images/bitcoin1.jpg') }}');">
+    <h1>Bitcoin Price Prediction</h1>
+    <p class="page-subtitle">Return-Based BitCoin Price Prediction</p>
+</div>
+
+<!-- Table of Contents - Compact -->
+<section class="toc-section-compact">
+    <span class="toc-label">Jump to:</span>
+    <div class="toc-pills">
+        <a href="#quick-stats" class="toc-pill">📊 Key Metrics</a>
+        <a href="#approach" class="toc-pill">🎯 Our Approach</a>
+        <a href="#features" class="toc-pill">📈 Features</a>
+        <a href="#models" class="toc-pill">🤖 Models</a>
+        <a href="#pipeline" class="toc-pill">⚙️ Pipeline</a>
+    </div>
+</section>
+
+<!-- Quick Stats -->
+<section id="quick-stats" class="quick-stats">
+    <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">1.16%</div>
+        <div class="stat-label">Prediction Error (MAPE)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value">55+</div>
+        <div class="stat-label">Technical Features</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-value">3</div>
+        <div class="stat-label">ML Models Compared</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value">0.865</div>
+        <div class="stat-label">R² Score</div>
+    </div>
+</section>
+
+<!-- Key Approach -->
+<section id="approach" class="approach-section">
+    <div class="card">
+        <h2>Return-Based Prediction Approach</h2>
+        <div class="approach-with-image">
+            <div class="approach-image" style="background-image: url('{{ url_for('static', filename='images/bitcoin2.jpg') }}');"></div>
+            <div class="approach-content">
+                <div class="approach-box">
+                    <div class="approach-icon">✅</div>
+                    <h3>What We Predict</h3>
+                    <p class="approach-text"><strong>Percentage changes</strong> (returns) instead of absolute prices</p>
+                    <div class="formula-simple">
+                        return = (future_price - current_price) / current_price
+                    </div>
+                </div>
+                <div class="approach-box">
+                    <div class="approach-icon">🎯</div>
+                    <h3>Why It Works</h3>
+                    <p class="approach-text">Returns are <strong>bounded</strong> (-10% to +10%) and work at any price level</p>
+                    <div class="formula-simple">
+                        predicted_price = current_price × (1 + predicted_return)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Feature Categories - Collapsible -->
+<section id="features" class="features-section">
+    <h2>55+ Engineered Features</h2>
+    <p class="section-intro-small">Click any category to see details</p>
+
+    <div class="feature-grid">
+        <!-- Technical Indicators -->
+        <div class="feature-category-card" onclick="toggleFeature('technical')">
+            <div class="feature-card-header">
+                <div class="feature-icon">📈</div>
+                <div class="feature-card-content">
+                    <h3>Technical Indicators</h3>
+                    <p class="feature-count">20 features</p>
+                </div>
+                <div class="expand-icon" id="icon-technical">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-technical">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>RSI (Relative Strength Index)</strong>
+                    <p>Periods: 10, 14, 30, 200 | Measures overbought/oversold conditions</p>
+                </div>
+                <div class="feature-item">
+                    <strong>MACD (Moving Average Convergence Divergence)</strong>
+                    <p>Components: line, signal, histogram | Trend and momentum indicator</p>
+                </div>
+                <div class="feature-item">
+                    <strong>EMA (Exponential Moving Average)</strong>
+                    <p>Periods: 10, 30, 200 | Smoothed price trends</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Bollinger Bands</strong>
+                    <p>Components: high, low, mid, width | Volatility and reversal points</p>
+                </div>
+                <div class="feature-item">
+                    <strong>ATR (Average True Range)</strong>
+                    <p>Period: 14 | Measures market volatility</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Stochastic Oscillator</strong>
+                    <p>Components: %K, %D | Momentum indicator</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume Indicators -->
+        <div class="feature-category-card" onclick="toggleFeature('volume')">
+            <div class="feature-card-header">
+                <div class="feature-icon">📊</div>
+                <div class="feature-card-content">
+                    <h3>Volume Indicators</h3>
+                    <p class="feature-count">3 features</p>
+                </div>
+                <div class="expand-icon" id="icon-volume">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-volume">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Volume EMA</strong>
+                    <p>Periods: 10, 30 | Smoothed volume trends</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Volume Ratio</strong>
+                    <p>Current volume / 30-period average | Confirms price movements</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lag Features -->
+        <div class="feature-category-card" onclick="toggleFeature('lag')">
+            <div class="feature-card-header">
+                <div class="feature-icon">⏮️</div>
+                <div class="feature-card-content">
+                    <h3>Lag Features</h3>
+                    <p class="feature-count">8 features</p>
+                </div>
+                <div class="expand-icon" id="icon-lag">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-lag">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Price Lags</strong>
+                    <p>Periods: 1, 2, 3, 5, 7 | Historical closing prices</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Volume Lags</strong>
+                    <p>Periods: 1, 2, 3 | Historical volume values</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rolling Statistics -->
+        <div class="feature-category-card" onclick="toggleFeature('rolling')">
+            <div class="feature-card-header">
+                <div class="feature-icon">📉</div>
+                <div class="feature-card-content">
+                    <h3>Rolling Statistics</h3>
+                    <p class="feature-count">7 features</p>
+                </div>
+                <div class="expand-icon" id="icon-rolling">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-rolling">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Rolling Means</strong>
+                    <p>Windows: 7, 30, 90 | Moving averages for trend detection</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Rolling Standard Deviation</strong>
+                    <p>Windows: 7, 30 | Volatility measurement</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Rolling Min/Max</strong>
+                    <p>Window: 30 | Support and resistance levels</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Returns & Momentum -->
+        <div class="feature-category-card" onclick="toggleFeature('returns')">
+            <div class="feature-card-header">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-card-content">
+                    <h3>Returns & Momentum</h3>
+                    <p class="feature-count">5 features</p>
+                </div>
+                <div class="expand-icon" id="icon-returns">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-returns">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Simple Returns</strong>
+                    <p>Period: 1 | Percentage price change</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Log Returns</strong>
+                    <p>Period: 1 | Logarithmic returns for better distribution</p>
+                </div>
+                <div class="feature-item">
+                    <strong>7-day Returns</strong>
+                    <p>Period: 7 | Weekly cumulative change</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Momentum</strong>
+                    <p>Periods: 10, 30 | Raw price change over time</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interaction Features -->
+        <div class="feature-category-card" onclick="toggleFeature('interaction')">
+            <div class="feature-card-header">
+                <div class="feature-icon">🔗</div>
+                <div class="feature-card-content">
+                    <h3>Interaction Features</h3>
+                    <p class="feature-count">2 features</p>
+                </div>
+                <div class="expand-icon" id="icon-interaction">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-interaction">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Price × Volume</strong>
+                    <p>Combined price-volume signal strength</p>
+                </div>
+                <div class="feature-item">
+                    <strong>RSI × MACD</strong>
+                    <p>Combined momentum indicator</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Models -->
+<section id="models" class="models-section">
+    <h2>Models Compared</h2>
+    <div class="models-grid">
+        <div class="model-card best-model">
+            <div class="model-badge">⭐ Best</div>
+            <h3>XGBoost</h3>
+            <div class="model-stat">1.16%</div>
+            <p class="model-desc">Gradient boosting with regularization</p>
+        </div>
+        <div class="model-card">
+            <h3>Random Forest</h3>
+            <div class="model-stat">1.89%</div>
+            <p class="model-desc">Ensemble of decision trees</p>
+        </div>
+        <div class="model-card">
+            <h3>Gradient Boosting</h3>
+            <div class="model-stat">3.14%</div>
+            <p class="model-desc">Sequential boosting approach</p>
+        </div>
+    </div>
+</section>
+
+<!-- Pipeline -->
+<section id="pipeline" class="pipeline-section">
+    <h2>Complete Pipeline</h2>
+    <div class="pipeline-simple">
+        <div class="pipeline-step-simple">
+            <div class="step-number">1</div>
+            <h4>Fetch Data</h4>
+            <p>3 sources</p>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step-simple">
+            <div class="step-number">2</div>
+            <h4>Engineer</h4>
+            <p>55+ features</p>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step-simple">
+            <div class="step-number">3</div>
+            <h4>Train</h4>
+            <p>3 models</p>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step-simple">
+            <div class="step-number">4</div>
+            <h4>Predict</h4>
+            <p>1d/3d/7d</p>
+        </div>
+    </div>
+</section>
+
+<div class="nav-buttons">
+    <a href="{{ url_for('results') }}" class="btn btn-primary">View Test Results →</a>
+</div>
+
+<script>
+function toggleFeature(category) {
+    const panel = document.getElementById('details-' + category);
+    const icon = document.getElementById('icon-' + category);
+    const allPanels = document.querySelectorAll('.feature-details-panel');
+    const allIcons = document.querySelectorAll('.expand-icon');
+
+    // Check if this panel is currently open
+    const isOpen = panel.style.display === 'block';
+
+    // Close all panels
+    allPanels.forEach(p => p.style.display = 'none');
+    allIcons.forEach(i => i.textContent = '▼');
+
+    // If it wasn't open, open it
+    if (!isOpen) {
+        panel.style.display = 'block';
+        icon.textContent = '▲';
+        // Smooth scroll to panel
+        setTimeout(() => {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    }
+}
+</script>
+{% endblock %}
