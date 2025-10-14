@@ -242,31 +242,155 @@ class CryptoDataFetcher:
             self._print(f"Error with direct Binance API: {e}")
             return None
 
+    def _fetch_cryptocompare(self, interval='15m', days=60):
+        """
+        Fetch Bitcoin data from CryptoCompare API with pagination
+        Primary source for GitHub Actions (no geo-blocking)
+        
+        Args:
+            interval (str): '15m' or '1h'
+            days (int): Days of history
+            
+        Returns:
+            pd.DataFrame or None
+        """
+        try:
+            if interval == '15m':
+                endpoint = 'histominute'
+                aggregate = 1
+                samples_per_day = 96
+                self._print(f"Fetching {days}d of 15-min data via CryptoCompare...")
+            elif interval == '1h':
+                endpoint = 'histohour'
+                aggregate = 1
+                samples_per_day = 24
+                self._print(f"Fetching {days}d of hourly data via CryptoCompare...")
+            else:
+                self._print(f"Invalid interval: {interval}")
+                return None
+            
+            total_samples_needed = days * samples_per_day
+            max_per_request = 2000
+            
+            # If we need more than 2000 samples, paginate
+            if total_samples_needed > max_per_request:
+                num_requests = (total_samples_needed + max_per_request - 1) // max_per_request
+                self._print(f"Need {total_samples_needed} samples, fetching in {num_requests} batches...")
+                
+                all_candles = []
+                to_timestamp = None  # Start from now, go backwards
+                
+                for i in range(num_requests):
+                    remaining = total_samples_needed - len(all_candles)
+                    limit = min(remaining, max_per_request)
+                    
+                    url = f'https://min-api.cryptocompare.com/data/v2/{endpoint}'
+                    params = {
+                        'fsym': 'BTC',
+                        'tsym': 'USD',
+                        'limit': limit,
+                        'aggregate': aggregate
+                    }
+                    
+                    if to_timestamp is not None:
+                        params['toTs'] = to_timestamp
+                    
+                    response = requests.get(url, params=params, timeout=30)
+                    response.raise_for_status()
+                    
+                    data = response.json()
+                    
+                    if data['Response'] != 'Success':
+                        self._print(f"API Error: {data.get('Message', 'Unknown error')}")
+                        return None
+                    
+                    batch_candles = data['Data']['Data']
+                    
+                    if not batch_candles:
+                        break
+                    
+                    all_candles.extend(batch_candles)
+                    
+                    # Set next batch to end where this one started (go backwards in time)
+                    to_timestamp = batch_candles[0]['time'] - 1
+                    
+                    self._print(f"  Batch {i+1}/{num_requests}: {len(batch_candles)} samples, total: {len(all_candles)}")
+                    
+                    if len(all_candles) >= total_samples_needed:
+                        break
+                
+                candles = all_candles
+                
+            else:
+                # Single request is enough
+                url = f'https://min-api.cryptocompare.com/data/v2/{endpoint}'
+                params = {
+                    'fsym': 'BTC',
+                    'tsym': 'USD',
+                    'limit': total_samples_needed,
+                    'aggregate': aggregate
+                }
+                
+                response = requests.get(url, params=params, timeout=30)
+                response.raise_for_status()
+                
+                data = response.json()
+                
+                if data['Response'] != 'Success':
+                    self._print(f"API Error: {data.get('Message', 'Unknown error')}")
+                    return None
+                
+                candles = data['Data']['Data']
+            
+            if not candles:
+                self._print("No data returned")
+                return None
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(candles)
+            df['timestamp'] = pd.to_datetime(df['time'], unit='s')
+            df = df[['timestamp', 'open', 'high', 'low', 'close', 'volumefrom']]
+            df.rename(columns={'volumefrom': 'volume'}, inplace=True)
+            
+            # Sort by timestamp (pagination fetches backwards)
+            df = df.sort_values('timestamp').reset_index(drop=True)
+            
+            df.set_index('timestamp', inplace=True)
+            df.sort_index(inplace=True)
+            df = df[~df.index.duplicated(keep='first')]
+            
+            self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:,.2f}")
+            return df
+            
+        except Exception as e:
+            self._print(f"CryptoCompare error: {e}")
+            return None
+
     def fetch_binance_15min(self, symbol='BTCUSDT', days=60):
         """
-        Fetch 15-minute Bitcoin data from Binance (direct API, no SDK)
+        Fetch 15-minute Bitcoin data from CryptoCompare
 
         Args:
-            symbol (str): Trading pair (default: BTCUSDT)
+            symbol (str): Trading pair (ignored, kept for compatibility)
             days (int): Days of history (default: 60)
 
         Returns:
             pd.DataFrame: OHLCV data with timestamp index
         """
-        return self._fetch_binance_direct(symbol=symbol, interval='15m', days=days)
+        return self._fetch_cryptocompare(interval='15m', days=days)
 
-    def fetch_binance_1hour(self, symbol='BTCUSDT', days=60):
+    def fetch_binance_1hour(self, symbol='BTCUSDT', days=365):
         """
-        Fetch 1-hour Bitcoin data from Binance (direct API, no SDK)
+        Fetch 1-hour Bitcoin data from CryptoCompare
 
         Args:
-            symbol (str): Trading pair (default: BTCUSDT)
-            days (int): Days of history (default: 60)
+            symbol (str): Trading pair (ignored, kept for compatibility)
+            days (int): Days of history (default: 365)
 
         Returns:
             pd.DataFrame: OHLCV data with timestamp index
         """
-        return self._fetch_binance_direct(symbol=symbol, interval='1h', days=days)
+        return self._fetch_cryptocompare(interval='1h', days=days)
 
     def fetch_yahoo_daily(self, ticker='BTC-USD', period='2y', interval='1d'):
         """
