@@ -10,6 +10,132 @@ from binance.client import Client
 import yfinance as yf
 import time
 import requests
+from pathlib import Path
+
+
+def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/raw', verbose=True):
+    """
+    Fetch Bitcoin data with incremental updates
+
+    If cached file exists:
+      - Load existing data
+      - Fetch only new data since last timestamp
+      - Append and deduplicate
+
+    If cached file doesn't exist:
+      - Fetch full history (days parameter)
+      - Save to cache
+
+    Args:
+        source (str): 'yahoo', 'binance' (15-min), or 'binance_1h' (hourly)
+        days (int): Days to fetch if no cache exists (default: 365)
+        cache_dir (str): Directory for cached files (default: 'data/raw')
+        verbose (bool): Print status messages (default: True)
+
+    Returns:
+        pd.DataFrame or None
+
+    Example:
+        # First call: fetches 365 days
+        df = get_bitcoin_data_incremental('binance_1h', days=365)
+
+        # Later calls: only fetches new data since last timestamp
+        df = get_bitcoin_data_incremental('binance_1h', days=365)
+    """
+    import os
+
+    # Determine cache filename
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+
+    if source == 'yahoo':
+        cache_file = cache_path / 'btc_yahoo_2y_daily.csv'
+    elif source == 'binance':
+        cache_file = cache_path / 'btc_binance_60d_15min.csv'
+    elif source == 'binance_1h':
+        cache_file = cache_path / 'btc_binance_365d_1hour.csv'
+    else:
+        raise ValueError(f"Invalid source: {source}")
+
+    # Check if cache exists
+    if cache_file.exists():
+        if verbose:
+            print(f"✓ Found cached data: {cache_file}")
+
+        # Load existing data
+        existing_df = pd.read_csv(cache_file, index_col=0, parse_dates=True)
+        last_timestamp = existing_df.index[-1]
+
+        if verbose:
+            print(f"  Last cached timestamp: {last_timestamp}")
+            print(f"  Fetching new data since {last_timestamp}...")
+
+        # Calculate how many days to fetch (from last timestamp to now)
+        days_to_fetch = (datetime.now() - last_timestamp).days + 1  # +1 for safety
+        days_to_fetch = max(2, days_to_fetch)  # At least 2 days to ensure overlap
+
+        if verbose:
+            print(f"  Fetching last {days_to_fetch} days to update cache...")
+
+        # Fetch new data
+        result = get_bitcoin_data(source=source, days=days_to_fetch, return_dict=True)
+
+        if result['status'] != 'success' or result['data'] is None:
+            if verbose:
+                print(f"  ⚠️  Failed to fetch new data, using cached version")
+            return existing_df
+
+        new_df = result['data']
+
+        # Merge: append new data and remove duplicates
+        combined_df = pd.concat([existing_df, new_df])
+        combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
+        combined_df.sort_index(inplace=True)
+
+        # Trim to desired length (keep last N days)
+        if source == 'yahoo':
+            # Keep 2 years for Yahoo
+            cutoff = datetime.now() - timedelta(days=730)
+        elif source == 'binance':
+            # Keep 60 days for 15-min
+            cutoff = datetime.now() - timedelta(days=60)
+        elif source == 'binance_1h':
+            # Keep 365 days for hourly
+            cutoff = datetime.now() - timedelta(days=365)
+
+        combined_df = combined_df[combined_df.index >= cutoff]
+
+        # Save updated cache
+        combined_df.to_csv(cache_file)
+
+        new_rows = len(combined_df) - len(existing_df)
+        if verbose:
+            print(f"  ✅ Updated cache: added {new_rows} new rows")
+            print(f"  Total rows: {len(combined_df)} (from {combined_df.index[0]} to {combined_df.index[-1]})")
+
+        return combined_df
+
+    else:
+        # No cache, fetch full history
+        if verbose:
+            print(f"  No cache found, fetching full {days} days...")
+
+        result = get_bitcoin_data(source=source, days=days, period='2y', return_dict=True)
+
+        if result['status'] != 'success' or result['data'] is None:
+            if verbose:
+                print(f"  ❌ Failed to fetch data")
+            return None
+
+        df = result['data']
+
+        # Save to cache
+        df.to_csv(cache_file)
+
+        if verbose:
+            print(f"  ✅ Saved cache: {len(df)} rows to {cache_file}")
+
+        return df
 
 
 class CryptoDataFetcher:

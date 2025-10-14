@@ -23,7 +23,7 @@ from datetime import datetime
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.data_fetcher import get_bitcoin_data
+from utils.data_fetcher import get_bitcoin_data, get_bitcoin_data_incremental
 from utils.feature_engineering import engineer_technical_features
 
 
@@ -126,14 +126,14 @@ def generate_hourly_predictions():
     print(f"  Note: Models predict 1h/6h/24h ahead using TRUE 1-hour candles from Binance")
 
     # Fetch data (365 days to match training data and prevent overfitting)
-    print("\n[2/5] Fetching Binance 1-hour data (365 days)...")
-    result = get_bitcoin_data(source='binance_1h', days=365, return_dict=True)
+    # Use incremental fetch to only fetch new data if cache exists
+    print("\n[2/5] Fetching Binance 1-hour data (incremental update)...")
+    df = get_bitcoin_data_incremental(source='binance_1h', days=365, verbose=True)
 
-    if result['status'] != 'success':
-        raise Exception(f"Failed to fetch data: {result.get('message')}")
+    if df is None or df.empty:
+        raise Exception("Failed to fetch data")
 
-    df = result['data']
-    print(f"✓ Fetched {len(df)} hourly candles")
+    print(f"✓ Loaded {len(df)} hourly candles")
     print(f"  Current price: ${df['close'].iloc[-1]:,.2f}")
 
     # Engineer features
@@ -181,15 +181,14 @@ def generate_15min_predictions():
     models, scaler, feature_cols = load_models_for_timeframe(models_dir, ['15m', '1h', '4h'])
     print(f"✓ Loaded 3 models (15m, 1h, 4h)")
     
-    # Fetch data
-    print("\n[2/5] Fetching Binance 15-min data...")
-    result = get_bitcoin_data(source='binance', days=60, return_dict=True)
-    
-    if result['status'] != 'success':
-        raise Exception(f"Failed to fetch data: {result.get('message')}")
-    
-    df = result['data']
-    print(f"✓ Fetched {len(df)} 15-min bars")
+    # Fetch data (use incremental fetch to only fetch new data)
+    print("\n[2/5] Fetching Binance 15-min data (incremental update)...")
+    df = get_bitcoin_data_incremental(source='binance', days=60, verbose=True)
+
+    if df is None or df.empty:
+        raise Exception("Failed to fetch data")
+
+    print(f"✓ Loaded {len(df)} 15-min bars")
     print(f"  Current price: ${df['close'].iloc[-1]:,.2f}")
     
     # Engineer features
