@@ -11,6 +11,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import sys
 
+# Add parent directory to path for config import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 # Try to import config
 try:
     import config

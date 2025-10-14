@@ -98,10 +98,16 @@ def save_predictions(predictions, current_price, current_timestamp, output_path,
     df = pd.DataFrame([record])
     df.to_csv(output_path, index=False)
     
-    # Also append to history
+    # Also append to history (avoid duplicates)
     history_path = output_path.parent / f'{timeframe}_predictions_history.csv'
     if history_path.exists():
-        df.to_csv(history_path, mode='a', header=False, index=False)
+        # Load existing history to check for duplicates
+        history_df = pd.read_csv(history_path)
+        # Check if this timestamp already exists
+        if current_timestamp not in history_df['timestamp'].values:
+            df.to_csv(history_path, mode='a', header=False, index=False)
+        else:
+            print(f"  ⚠ Prediction for {current_timestamp} already exists in history, skipping append")
     else:
         df.to_csv(history_path, index=False)
     
