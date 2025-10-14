@@ -1,15 +1,15 @@
 """
 Crypto Data Fetcher - Fetch Bitcoin price data from free APIs
-Sources: Yahoo Finance (daily), Binance (15-min), CoinGecko (hourly)
+Sources: Yahoo Finance (daily), Binance (15-min, hourly)
 """
 
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from binance.client import Client
-from pycoingecko import CoinGeckoAPI
 import yfinance as yf
 import time
+import requests
 
 
 class CryptoDataFetcher:
@@ -21,13 +21,113 @@ class CryptoDataFetcher:
             verbose (bool): Print status messages (default: False)
         """
         self.verbose = verbose
-        self.binance_client = Client(api_key=None, api_secret=None)
-        self.coingecko_client = CoinGeckoAPI()
+        self._binance_client = None
+
+    @property
+    def binance_client(self):
+        """Lazy initialization of Binance client (may fail in geo-restricted locations)"""
+        if self._binance_client is None:
+            try:
+                self._binance_client = Client(api_key=None, api_secret=None)
+            except Exception as e:
+                self._print(f"Warning: Binance SDK initialization failed: {e}")
+                self._print("Will use direct REST API as fallback")
+                # Don't raise - we'll use direct API instead
+                pass
+        return self._binance_client
 
     def _print(self, *args, **kwargs):
         """Conditionally print if verbose=True"""
         if self.verbose:
             print(*args, **kwargs)
+
+    def _fetch_binance_direct(self, symbol='BTCUSDT', interval='1h', days=60):
+        """
+        Fetch Binance data via direct REST API (no SDK, no geo-restrictions)
+
+        This is a fallback when the Binance SDK fails (e.g., GitHub Actions)
+        Uses public Binance API: https://api.binance.com/api/v3/klines
+
+        Supports pagination to fetch more than 1000 candles (Binance limit per request)
+
+        Args:
+            symbol (str): Trading pair (default: BTCUSDT)
+            interval (str): '15m' or '1h' (default: 1h)
+            days (int): Days of history (default: 60)
+
+        Returns:
+            pd.DataFrame or None
+        """
+        try:
+            self._print(f"Fetching {days}d of {interval} data via Binance REST API...")
+
+            # Calculate time range
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=days)
+            start_ts = int(start_time.timestamp() * 1000)
+            end_ts = int(end_time.timestamp() * 1000)
+
+            # Binance limit: 1000 candles per request, need pagination
+            all_klines = []
+            url = 'https://api.binance.com/api/v3/klines'
+            current_start = start_ts
+
+            while current_start < end_ts:
+                params = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'startTime': current_start,
+                    'endTime': end_ts,
+                    'limit': 1000  # Binance max per request
+                }
+
+                response = requests.get(url, params=params, timeout=30)
+                response.raise_for_status()
+                klines = response.json()
+
+                if not klines:
+                    break
+
+                all_klines.extend(klines)
+
+                # Move to next batch (last candle's close time + 1ms)
+                current_start = int(klines[-1][6]) + 1  # close_time is index 6
+
+                # Small delay to respect rate limits
+                if current_start < end_ts:
+                    time.sleep(0.1)
+
+            if not all_klines:
+                self._print("No data returned from Binance API")
+                return None
+
+            self._print(f"Received {len(all_klines)} candles (paginated)")
+
+            # Convert to DataFrame
+            # Binance kline format: [open_time, open, high, low, close, volume, close_time, ...]
+            df = pd.DataFrame(all_klines, columns=[
+                'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                'close_time', 'quote_volume', 'trades', 'taker_buy_base',
+                'taker_buy_quote', 'ignore'
+            ])
+
+            # Clean up
+            df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                df[col] = df[col].astype(float)
+            df.set_index('timestamp', inplace=True)
+            df.sort_index(inplace=True)
+
+            # Remove duplicates if any
+            df = df[~df.index.duplicated(keep='first')]
+
+            self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
+            return df
+
+        except Exception as e:
+            self._print(f"Error with direct Binance API: {e}")
+            return None
 
     def fetch_binance_15min(self, symbol='BTCUSDT', days=60):
         """
@@ -43,48 +143,54 @@ class CryptoDataFetcher:
         try:
             self._print(f"Fetching {days}d of 15-min data from Binance...")
 
-            # Calculate time range
-            end_time = datetime.now()
-            start_time = end_time - timedelta(days=days)
-            start_ts = int(start_time.timestamp() * 1000)
-            end_ts = int(end_time.timestamp() * 1000)
+            # Try SDK first
+            if self.binance_client is not None:
+                # Calculate time range
+                end_time = datetime.now()
+                start_time = end_time - timedelta(days=days)
+                start_ts = int(start_time.timestamp() * 1000)
+                end_ts = int(end_time.timestamp() * 1000)
 
-            # Fetch klines (no limit - get all available data in time range)
-            # Binance free tier: 6000 weight/min, this call = 1 weight
-            klines = self.binance_client.get_historical_klines(
-                symbol=symbol,
-                interval=Client.KLINE_INTERVAL_15MINUTE,
-                start_str=start_ts,
-                end_str=end_ts
-            )
+                # Fetch klines (no limit - get all available data in time range)
+                # Binance free tier: 6000 weight/min, this call = 1 weight
+                klines = self.binance_client.get_historical_klines(
+                    symbol=symbol,
+                    interval=Client.KLINE_INTERVAL_15MINUTE,
+                    start_str=start_ts,
+                    end_str=end_ts
+                )
 
-            if not klines:
-                self._print("No data returned from Binance")
-                return None
+                if not klines:
+                    self._print("No data returned from Binance")
+                    return None
 
-            self._print(f"Received {len(klines)} candles")
+                self._print(f"Received {len(klines)} candles")
 
-            # Convert to DataFrame
-            df = pd.DataFrame(klines, columns=[
-                'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                'close_time', 'quote_volume', 'trades', 'taker_buy_base',
-                'taker_buy_quote', 'ignore'
-            ])
+                # Convert to DataFrame
+                df = pd.DataFrame(klines, columns=[
+                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                    'close_time', 'quote_volume', 'trades', 'taker_buy_base',
+                    'taker_buy_quote', 'ignore'
+                ])
 
-            # Clean up
-            df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = df[col].astype(float)
-            df.set_index('timestamp', inplace=True)
-            df.sort_index(inplace=True)
+                # Clean up
+                df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+                df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+                for col in ['open', 'high', 'low', 'close', 'volume']:
+                    df[col] = df[col].astype(float)
+                df.set_index('timestamp', inplace=True)
+                df.sort_index(inplace=True)
 
-            self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
-            return df
+                self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
+                return df
+            else:
+                # SDK failed, use direct API
+                self._print("SDK unavailable, using direct REST API...")
+                return self._fetch_binance_direct(symbol=symbol, interval='15m', days=days)
 
         except Exception as e:
-            self._print(f"Error: {e}")
-            return None
+            self._print(f"SDK Error: {e}, trying direct API...")
+            return self._fetch_binance_direct(symbol=symbol, interval='15m', days=days)
 
     def fetch_binance_1hour(self, symbol='BTCUSDT', days=60):
         """
@@ -100,123 +206,54 @@ class CryptoDataFetcher:
         try:
             self._print(f"Fetching {days}d of 1-hour data from Binance...")
 
-            # Calculate time range
-            end_time = datetime.now()
-            start_time = end_time - timedelta(days=days)
-            start_ts = int(start_time.timestamp() * 1000)
-            end_ts = int(end_time.timestamp() * 1000)
+            # Try SDK first
+            if self.binance_client is not None:
+                # Calculate time range
+                end_time = datetime.now()
+                start_time = end_time - timedelta(days=days)
+                start_ts = int(start_time.timestamp() * 1000)
+                end_ts = int(end_time.timestamp() * 1000)
 
-            # Fetch klines (no limit - get all available data in time range)
-            # Binance free tier: 6000 weight/min, this call = 1 weight
-            klines = self.binance_client.get_historical_klines(
-                symbol=symbol,
-                interval=Client.KLINE_INTERVAL_1HOUR,
-                start_str=start_ts,
-                end_str=end_ts
-            )
+                # Fetch klines (no limit - get all available data in time range)
+                # Binance free tier: 6000 weight/min, this call = 1 weight
+                klines = self.binance_client.get_historical_klines(
+                    symbol=symbol,
+                    interval=Client.KLINE_INTERVAL_1HOUR,
+                    start_str=start_ts,
+                    end_str=end_ts
+                )
 
-            if not klines:
-                self._print("No data returned from Binance")
-                return None
+                if not klines:
+                    self._print("No data returned from Binance")
+                    return None
 
-            self._print(f"Received {len(klines)} candles")
+                self._print(f"Received {len(klines)} candles")
 
-            # Convert to DataFrame
-            df = pd.DataFrame(klines, columns=[
-                'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                'close_time', 'quote_volume', 'trades', 'taker_buy_base',
-                'taker_buy_quote', 'ignore'
-            ])
+                # Convert to DataFrame
+                df = pd.DataFrame(klines, columns=[
+                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                    'close_time', 'quote_volume', 'trades', 'taker_buy_base',
+                    'taker_buy_quote', 'ignore'
+                ])
 
-            # Clean up
-            df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = df[col].astype(float)
-            df.set_index('timestamp', inplace=True)
-            df.sort_index(inplace=True)
+                # Clean up
+                df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+                df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+                for col in ['open', 'high', 'low', 'close', 'volume']:
+                    df[col] = df[col].astype(float)
+                df.set_index('timestamp', inplace=True)
+                df.sort_index(inplace=True)
 
-            self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
-            return df
-
-        except Exception as e:
-            self._print(f"Error: {e}")
-            return None
-
-    def fetch_coingecko_hourly(self, coin_id='bitcoin', vs_currency='usd', days=60):
-        """
-        Fetch hourly Bitcoin data from CoinGecko
-
-        Args:
-            coin_id (str): Coin ID (default: bitcoin)
-            vs_currency (str): Currency (default: usd)
-            days (int): Days of history (1-90, default: 60)
-                        Note: CoinGecko only accepts: 1, 7, 14, 30, 90, 180, 365
-                        If invalid value provided, will use nearest valid value
-
-        Returns:
-            pd.DataFrame: OHLCV data with timestamp index
-        """
-        try:
-            # CoinGecko OHLC API only accepts specific values
-            valid_days = [1, 7, 14, 30, 90, 180, 365]
-
-            # Find nearest valid value
-            if days not in valid_days:
-                # Round up to next valid value
-                valid_days_sorted = sorted(valid_days)
-                days_adjusted = next((d for d in valid_days_sorted if d >= days), valid_days_sorted[-1])
-                if self.verbose:
-                    self._print(f"Note: CoinGecko OHLC API doesn't support days={days}, using {days_adjusted} instead")
-                days = days_adjusted
-
-            self._print(f"Fetching {days}d hourly data from CoinGecko...")
-
-            # Fetch OHLC data (provides open, high, low, close)
-            ohlc_data = self.coingecko_client.get_coin_ohlc_by_id(
-                id=coin_id,
-                vs_currency=vs_currency,
-                days=days
-            )
-
-            if not ohlc_data:
-                self._print("No OHLC data returned from CoinGecko")
-                return None
-
-            self._print(f"Received {len(ohlc_data)} OHLC candles")
-
-            # Convert to DataFrame
-            # CoinGecko OHLC format: [timestamp, open, high, low, close]
-            df = pd.DataFrame(ohlc_data, columns=['timestamp', 'open', 'high', 'low', 'close'])
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-
-            # Add volume column (CoinGecko OHLC doesn't include volume, so we'll use a placeholder)
-            # We'll fetch volume data separately
-            market_data = self.coingecko_client.get_coin_market_chart_by_id(
-                id=coin_id,
-                vs_currency=vs_currency,
-                days=days
-            )
-
-            if 'total_volumes' in market_data and market_data['total_volumes']:
-                vol_df = pd.DataFrame(market_data['total_volumes'], columns=['timestamp', 'volume'])
-                vol_df['timestamp'] = pd.to_datetime(vol_df['timestamp'], unit='ms')
-
-                # Merge volume data with OHLC
-                df = df.merge(vol_df, on='timestamp', how='left')
+                self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
+                return df
             else:
-                # If no volume data, use zero
-                df['volume'] = 0.0
-
-            df.set_index('timestamp', inplace=True)
-            df.sort_index(inplace=True)
-
-            self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
-            return df
+                # SDK failed, use direct API
+                self._print("SDK unavailable, using direct REST API...")
+                return self._fetch_binance_direct(symbol=symbol, interval='1h', days=days)
 
         except Exception as e:
-            self._print(f"Error: {e}")
-            return None
+            self._print(f"SDK Error: {e}, trying direct API...")
+            return self._fetch_binance_direct(symbol=symbol, interval='1h', days=days)
 
     def fetch_yahoo_daily(self, ticker='BTC-USD', period='2y', interval='1d'):
         """
@@ -300,12 +337,12 @@ class CryptoDataFetcher:
         Fetch from all sources
 
         Returns:
-            dict: {'binance': df, 'coingecko': df, 'yahoo': df}
+            dict: {'binance': df, 'binance_1h': df, 'yahoo': df}
         """
         results = {}
         results['binance'] = self.fetch_binance_15min(days=days)
         time.sleep(1)
-        results['coingecko'] = self.fetch_coingecko_hourly(days=days)
+        results['binance_1h'] = self.fetch_binance_1hour(days=days)
         if include_yahoo:
             time.sleep(1)
             results['yahoo'] = self.fetch_yahoo_daily(period=yahoo_period)
@@ -322,8 +359,8 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
     Fetch Bitcoin data (for backend/API use)
 
     Args:
-        source: 'yahoo', 'binance', 'binance_1h', or 'coingecko'
-        days: Days for Binance/CoinGecko (default: 60)
+        source: 'yahoo', 'binance', or 'binance_1h'
+        days: Days for Binance (default: 60)
         period: Period for Yahoo - '1mo', '1y', '2y', '5y'
         symbol: Binance trading pair (default: BTCUSDT)
         ticker: Yahoo ticker (default: BTC-USD)
@@ -349,10 +386,8 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
             df = fetcher.fetch_binance_15min(symbol=symbol, days=days)
         elif source.lower() == 'binance_1h':
             df = fetcher.fetch_binance_1hour(symbol=symbol, days=days)
-        elif source.lower() == 'coingecko':
-            df = fetcher.fetch_coingecko_hourly(days=days)
         else:
-            raise ValueError(f"Invalid source '{source}'")
+            raise ValueError(f"Invalid source '{source}'. Valid options: 'yahoo', 'binance', 'binance_1h'")
 
         if df is None or df.empty:
             if return_dict:
@@ -362,7 +397,7 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
             return None
 
         if return_dict:
-            # Get latest price from either 'close' (Yahoo/Binance) or 'price' (CoinGecko)
+            # Get latest price from 'close' column (Yahoo/Binance)
             if 'close' in df.columns:
                 latest_price = float(df['close'].iloc[-1])
             elif 'price' in df.columns:
@@ -394,7 +429,7 @@ def get_latest_price(source='yahoo', ticker='BTC-USD'):
     Get latest Bitcoin price
 
     Args:
-        source: 'yahoo', 'binance', or 'coingecko'
+        source: 'yahoo' or 'binance'
         ticker: Ticker symbol (default: BTC-USD)
 
     Returns:
@@ -439,7 +474,7 @@ def save_bitcoin_data(source='yahoo', filename=None, data_dir='data/raw', **kwar
     Fetch and save Bitcoin data to CSV
 
     Args:
-        source: 'yahoo', 'binance', or 'coingecko'
+        source: 'yahoo', 'binance', or 'binance_1h'
         filename: Output filename (auto-generated if None)
         data_dir: Save directory (default: data/raw)
         **kwargs: Passed to get_bitcoin_data()
@@ -470,8 +505,8 @@ def save_bitcoin_data(source='yahoo', filename=None, data_dir='data/raw', **kwar
                 filename = f'btc_yahoo_{period}_daily.csv'
             elif source == 'binance':
                 filename = f'btc_binance_{days}d_15min.csv'
-            elif source == 'coingecko':
-                filename = f'btc_coingecko_{days}d_hourly.csv'
+            elif source == 'binance_1h':
+                filename = f'btc_binance_{days}d_1hour.csv'
 
         os.makedirs(data_dir, exist_ok=True)
         filepath = os.path.join(data_dir, filename)
@@ -496,12 +531,12 @@ def get_all_sources(days=60, yahoo_period='2y', save_to_disk=False):
     Fetch from all sources
 
     Args:
-        days: Days for Binance/CoinGecko
+        days: Days for Binance
         yahoo_period: Period for Yahoo
         save_to_disk: Save CSV files (default: False)
 
     Returns:
-        dict: {'yahoo': result, 'binance': result, 'coingecko': result}
+        dict: {'yahoo': result, 'binance': result, 'binance_1h': result}
 
     Example:
         all_data = get_all_sources(days=30, yahoo_period='1y')
@@ -512,9 +547,9 @@ def get_all_sources(days=60, yahoo_period='2y', save_to_disk=False):
 
     results['yahoo'] = get_bitcoin_data('yahoo', period=yahoo_period, return_dict=True)
     time.sleep(1)
-    results['coingecko'] = get_bitcoin_data('coingecko', days=days, return_dict=True)
-    time.sleep(1)
     results['binance'] = get_bitcoin_data('binance', days=days, return_dict=True)
+    time.sleep(1)
+    results['binance_1h'] = get_bitcoin_data('binance_1h', days=days, return_dict=True)
 
     if save_to_disk:
         for source, data in results.items():

@@ -1,6 +1,5 @@
 pandas
 yfinance
-pycoingecko
 python-binance
 scikit-learn
 joblib
@@ -12,4 +11,4 @@ numpy
 flask
 xgboost
 web3
-python-binance
+requests

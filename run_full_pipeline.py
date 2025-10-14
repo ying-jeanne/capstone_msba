@@ -117,7 +117,7 @@ def main():
     # STEP 1: Fetch Latest Data
     # ========================================================================
     print_step(1, "FETCH LATEST DATA")
-    print("   This will download the latest Bitcoin price data from: Yahoo Finance, CoinGecko, and CryptoCompare.")
+    print("   This will download the latest Bitcoin price data from: Yahoo Finance and Binance.")
     try:
         results = get_all_sources(days=60, yahoo_period='2y', save_to_disk=True)
 

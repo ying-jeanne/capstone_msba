@@ -125,9 +125,9 @@ def generate_hourly_predictions():
     print(f"✓ Loaded 3 models (1h, 6h, 24h)")
     print(f"  Note: Models predict 1h/6h/24h ahead using TRUE 1-hour candles from Binance")
 
-    # Fetch data
-    print("\n[2/5] Fetching Binance 1-hour data (60 days)...")
-    result = get_bitcoin_data(source='binance_1h', days=60, return_dict=True)
+    # Fetch data (365 days to match training data and prevent overfitting)
+    print("\n[2/5] Fetching Binance 1-hour data (365 days)...")
+    result = get_bitcoin_data(source='binance_1h', days=365, return_dict=True)
 
     if result['status'] != 'success':
         raise Exception(f"Failed to fetch data: {result.get('message')}")
