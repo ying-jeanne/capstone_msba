@@ -1,10 +1,3 @@
-**Verify:**
-1. Go to https://github.com/ying-jeanne/capstone_msba
-2. Check files appear on GitHub
-3. Look for `.github/workflows/` directory
-
----
-
 ### Phase 3: Enable & Test GitHub Actions (15 minutes)
 
 #### Task 3.1: Enable GitHub Actions ⏱️ 2 min
