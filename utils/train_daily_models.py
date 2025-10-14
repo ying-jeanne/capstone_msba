@@ -25,7 +25,6 @@ import sys
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.data_fetcher import get_bitcoin_data
 from utils.feature_engineering import engineer_technical_features
 
 
@@ -176,21 +175,22 @@ def main():
     print("\n" + "="*70)
     print("  DAILY MODEL TRAINING PIPELINE")
     print("="*70)
-    
+
     # Create output directories
     models_dir = Path('models/saved_models/daily')
     models_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Step 1: Fetch data
-    print("\n[STEP 1] Fetching Yahoo Finance data (2 years daily)...")
-    result = get_bitcoin_data(source='yahoo', ticker='BTC-USD', days=730, return_dict=True)
-    
-    if result['status'] != 'success':
-        print(f"❌ Error fetching data: {result.get('message')}")
+
+    # Step 1: Load cached data (training should NOT fetch fresh data)
+    print("\n[STEP 1] Loading cached Yahoo Finance data...")
+    data_path = Path('data/raw/btc_yahoo_2y_daily.csv')
+
+    if not data_path.exists():
+        print(f"❌ Error: Data file not found at {data_path}")
+        print("   Please run data fetching pipeline first to create cached data.")
         sys.exit(1)
-    
-    df = result['data']
-    print(f"✓ Fetched {len(df)} daily bars")
+
+    df = pd.read_csv(data_path, index_col=0, parse_dates=True)
+    print(f"✓ Loaded {len(df)} daily bars from {data_path}")
     print(f"  Date range: {df.index[0]} to {df.index[-1]}")
     
     # Step 2: Engineer features

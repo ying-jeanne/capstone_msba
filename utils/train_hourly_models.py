@@ -23,7 +23,6 @@ import sys
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.data_fetcher import get_bitcoin_data
 from utils.feature_engineering import engineer_technical_features
 
 
@@ -138,19 +137,20 @@ def main():
     models_dir = Path('models/saved_models/hourly')
     models_dir.mkdir(parents=True, exist_ok=True)
     
-    print("\n[STEP 1] Fetching Binance 1-hour data (60 days)...")
+    print("\n[STEP 1] Loading cached Binance 1-hour data...")
     print("  Note: Using TRUE 1-hour candles from Binance")
     print("        Expected: ~1440 hourly candles (60 days × 24 hours)")
 
-    result = get_bitcoin_data(source='binance_1h', days=60, return_dict=True)
+    data_path = Path('data/raw/btc_coingecko_60d_hourly.csv')
 
-    if result['status'] != 'success':
-        print(f"❌ Error fetching data: {result.get('message')}")
+    if not data_path.exists():
+        print(f"❌ Error: Data file not found at {data_path}")
+        print("   Please run data fetching pipeline first to create cached data.")
         sys.exit(1)
 
-    df = result['data']
+    df = pd.read_csv(data_path, index_col=0, parse_dates=True)
 
-    print(f"✓ Fetched {len(df)} hourly candles")
+    print(f"✓ Loaded {len(df)} hourly candles from {data_path}")
     print(f"  Date range: {df.index[0]} to {df.index[-1]}")
     print(f"  Latest price: ${df['close'].iloc[-1]:,.2f}")
     
