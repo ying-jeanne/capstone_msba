@@ -77,8 +77,8 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
         if verbose:
             print(f"  Fetching last {days_to_fetch} days to update cache...")
 
-        # Fetch new data
-        result = get_bitcoin_data(source=source, days=days_to_fetch, return_dict=True)
+        # Fetch new data (pass verbose to see fallback messages)
+        result = get_bitcoin_data(source=source, days=days_to_fetch, return_dict=True, verbose=verbose)
 
         if result['status'] != 'success' or result['data'] is None:
             if verbose:
@@ -120,7 +120,7 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
         if verbose:
             print(f"  No cache found, fetching full {days} days...")
 
-        result = get_bitcoin_data(source=source, days=days, period='2y', return_dict=True)
+        result = get_bitcoin_data(source=source, days=days, period='2y', return_dict=True, verbose=verbose)
 
         if result['status'] != 'success' or result['data'] is None:
             if verbose:
@@ -480,7 +480,7 @@ class CryptoDataFetcher:
 # =============================================================================
 
 def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
-                     ticker='BTC-USD', interval='1d', return_dict=False):
+                     ticker='BTC-USD', interval='1d', return_dict=False, verbose=False):
     """
     Fetch Bitcoin data (for backend/API use)
 
@@ -492,6 +492,7 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
         ticker: Yahoo ticker (default: BTC-USD)
         interval: Yahoo interval (default: 1d)
         return_dict: Return dict with metadata (default: False)
+        verbose: Print status messages (default: False)
 
     Returns:
         DataFrame or dict with status/metadata
@@ -502,7 +503,7 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
         df = get_bitcoin_data('binance', days=60)     # 15-min candles
         result = get_bitcoin_data('yahoo', period='1y', return_dict=True)
     """
-    fetcher = CryptoDataFetcher(verbose=False)
+    fetcher = CryptoDataFetcher(verbose=verbose)
     df = None
 
     try:
