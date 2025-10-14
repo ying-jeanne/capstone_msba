@@ -158,12 +158,21 @@
             </div>
             <div class="detail-row">
                 <strong>Actual Price (1-day later):</strong>
-                <span>${{ "%.2f"|format(summary.latest_prediction.actual_price_1d) }}</span>
+                {% if summary.latest_prediction.actual_price_1d %}
+                    <span>${{ "%.2f"|format(summary.latest_prediction.actual_price_1d) }}</span>
+                {% else %}
+                    <span class="pending">Pending (too recent to validate)</span>
+                {% endif %}
             </div>
             <div class="detail-row">
                 <strong>Error:</strong>
-                <span>${{ "%.2f"|format(summary.latest_prediction.error) }} ({{ "%.2f"|format(summary.latest_prediction.mape) }}%)</span>
+                {% if summary.latest_prediction.error_1d is not none %}
+                    <span>${{ "%.2f"|format(summary.latest_prediction.error_1d) }} ({{ "%.2f"|format(summary.latest_prediction.error_pct_1d) }}%)</span>
+                {% else %}
+                    <span class="pending">Not yet available</span>
+                {% endif %}
             </div>
+            {% if summary.latest_prediction.get('transaction_hash') %}
             <div class="detail-row blockchain-proof">
                 <strong>Transaction Hash:</strong>
                 <span class="hash-value">{{ summary.latest_prediction.transaction_hash[:20] }}...
@@ -172,10 +181,13 @@
                     </a>
                 </span>
             </div>
+            {% endif %}
+            {% if summary.latest_prediction.get('block_number') %}
             <div class="detail-row blockchain-proof">
                 <strong>Block Number:</strong>
                 <span>{{ "{:,}".format(summary.latest_prediction.block_number) }}</span>
             </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -246,21 +258,41 @@
                     <td>{{ pred.date }}</td>
                     <td>${{ "%.2f"|format(pred.current_price) }}</td>
                     <td>${{ "%.2f"|format(pred.predicted_price_1d) }}</td>
-                    <td>${{ "%.2f"|format(pred.actual_price_1d) }}</td>
-                    <td>${{ "%.2f"|format(pred.error) }}</td>
                     <td>
-                        {% if pred.mape < 2.0 %}
-                        <span class="status-good">{{ "%.2f"|format(pred.mape) }}%</span>
-                        {% elif pred.mape < 4.0 %}
-                        <span class="status-medium">{{ "%.2f"|format(pred.mape) }}%</span>
+                        {% if pred.actual_price_1d %}
+                            ${{ "%.2f"|format(pred.actual_price_1d) }}
                         {% else %}
-                        <span class="status-poor">{{ "%.2f"|format(pred.mape) }}%</span>
+                            <span class="pending">Pending</span>
                         {% endif %}
                     </td>
                     <td>
+                        {% if pred.error_1d is not none %}
+                            ${{ "%.2f"|format(pred.error_1d) }}
+                        {% else %}
+                            <span class="pending">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if pred.error_pct_1d is not none %}
+                            {% if pred.error_pct_1d|abs < 2.0 %}
+                            <span class="status-good">{{ "%.2f"|format(pred.error_pct_1d|abs) }}%</span>
+                            {% elif pred.error_pct_1d|abs < 4.0 %}
+                            <span class="status-medium">{{ "%.2f"|format(pred.error_pct_1d|abs) }}%</span>
+                            {% else %}
+                            <span class="status-poor">{{ "%.2f"|format(pred.error_pct_1d|abs) }}%</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="pending">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if pred.get('transaction_hash') %}
                         <a href="https://etherscan.io/tx/{{ pred.transaction_hash }}" target="_blank" class="hash-link">
                             {{ pred.transaction_hash[:10] }}...
                         </a>
+                        {% else %}
+                        <span class="pending">N/A</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -334,15 +366,18 @@ async function refreshPrice() {
 }
 
 // Historical predictions chart
+// Filter to only show validated predictions (with actual prices)
+const validatedPredictions = predictionsData.filter(p => p.actual_price_1d !== null);
+
 const historicalCtx = document.getElementById('historicalChart').getContext('2d');
 const historicalChart = new Chart(historicalCtx, {
     type: 'line',
     data: {
-        labels: predictionsData.map(p => p.date),
+        labels: validatedPredictions.map(p => p.date),
         datasets: [
             {
                 label: 'Predicted Price',
-                data: predictionsData.map(p => p.predicted_price_1d),
+                data: validatedPredictions.map(p => p.predicted_price_1d),
                 borderColor: '#6366f1',
                 backgroundColor: '#6366f180',
                 borderWidth: 2,
@@ -350,7 +385,7 @@ const historicalChart = new Chart(historicalCtx, {
             },
             {
                 label: 'Actual Price',
-                data: predictionsData.map(p => p.actual_price_1d),
+                data: validatedPredictions.map(p => p.actual_price_1d),
                 borderColor: '#f59e0b',
                 backgroundColor: '#f59e0b80',
                 borderWidth: 2,
@@ -373,15 +408,15 @@ const historicalChart = new Chart(historicalCtx, {
     }
 });
 
-// Rolling MAPE chart
+// Rolling MAPE chart (only validated predictions)
 const rollingMAPECtx = document.getElementById('rollingMAPEChart').getContext('2d');
 new Chart(rollingMAPECtx, {
     type: 'line',
     data: {
-        labels: predictionsData.map(p => p.date),
+        labels: validatedPredictions.map(p => p.date),
         datasets: [{
             label: 'MAPE (%)',
-            data: predictionsData.map(p => p.mape),
+            data: validatedPredictions.map(p => p.error_pct_1d ? Math.abs(p.error_pct_1d) : 0),
             borderColor: '#10b981',
             backgroundColor: '#10b98180',
             borderWidth: 2,
@@ -403,10 +438,10 @@ new Chart(rollingMAPECtx, {
     }
 });
 
-// Calculate directional accuracy
-const dirAccData = predictionsData.map((p, idx) => {
+// Calculate directional accuracy (only for validated predictions)
+const dirAccData = validatedPredictions.map((p, idx) => {
     if (idx === 0) return null;
-    const prevPrice = predictionsData[idx - 1].current_price;
+    const prevPrice = validatedPredictions[idx - 1].current_price;
     const actualDirection = p.actual_price_1d > p.current_price ? 1 : -1;
     const predictedDirection = p.predicted_price_1d > p.current_price ? 1 : -1;
     return actualDirection === predictedDirection ? 100 : 0;
@@ -444,8 +479,12 @@ new Chart(dirAccTrendCtx, {
 
 // Calculate and display live R² and directional accuracy
 function calculateLiveMetrics() {
-    const actualPrices = predictionsData.slice(-7).map(p => p.actual_price_1d);
-    const predictedPrices = predictionsData.slice(-7).map(p => p.predicted_price_1d);
+    // Only use validated predictions (last 7 with actuals)
+    const last7Validated = validatedPredictions.slice(-7);
+    if (last7Validated.length === 0) return; // No validated predictions yet
+    
+    const actualPrices = last7Validated.map(p => p.actual_price_1d);
+    const predictedPrices = last7Validated.map(p => p.predicted_price_1d);
 
     // Calculate R²
     const meanActual = actualPrices.reduce((a, b) => a + b, 0) / actualPrices.length;
@@ -455,13 +494,13 @@ function calculateLiveMetrics() {
 
     // Calculate directional accuracy
     let correct = 0;
-    for (let i = 1; i < predictionsData.slice(-7).length; i++) {
-        const p = predictionsData.slice(-7)[i];
+    for (let i = 1; i < last7Validated.length; i++) {
+        const p = last7Validated[i];
         const actualDir = p.actual_price_1d > p.current_price ? 1 : -1;
         const predDir = p.predicted_price_1d > p.current_price ? 1 : -1;
         if (actualDir === predDir) correct++;
     }
-    const dirAcc = (correct / (predictionsData.slice(-7).length - 1)) * 100;
+    const dirAcc = last7Validated.length > 1 ? (correct / (last7Validated.length - 1)) * 100 : 0;
 
     document.getElementById('liveR2').textContent = r2.toFixed(3);
     document.getElementById('liveDirAcc').textContent = dirAcc.toFixed(1) + '%';
@@ -471,8 +510,8 @@ calculateLiveMetrics();
 
 // Time range change function
 function changeTimeRange(days) {
-    // Filter data and update chart
-    const filteredData = predictionsData.slice(-days);
+    // Filter data to only validated predictions and update chart
+    const filteredData = validatedPredictions.slice(-days);
     historicalChart.data.labels = filteredData.map(p => p.date);
     historicalChart.data.datasets[0].data = filteredData.map(p => p.predicted_price_1d);
     historicalChart.data.datasets[1].data = filteredData.map(p => p.actual_price_1d);
