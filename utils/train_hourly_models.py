@@ -139,9 +139,9 @@ def main():
     
     print("\n[STEP 1] Loading cached Binance 1-hour data...")
     print("  Note: Using TRUE 1-hour candles from Binance")
-    print("        Expected: ~1440 hourly candles (60 days × 24 hours)")
+    print("        Expected: ~8760 hourly candles (365 days × 24 hours)")
 
-    data_path = Path('data/raw/btc_coingecko_60d_hourly.csv')
+    data_path = Path('data/raw/btc_binance_365d_1hour.csv')
 
     if not data_path.exists():
         print(f"❌ Error: Data file not found at {data_path}")
