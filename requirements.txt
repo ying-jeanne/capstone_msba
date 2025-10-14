@@ -1,6 +1,5 @@
 pandas
 yfinance
-python-binance
 scikit-learn
 joblib
 matplotlib

@@ -1,12 +1,13 @@
 """
 Crypto Data Fetcher - Fetch Bitcoin price data from free APIs
 Sources: Yahoo Finance (daily), Binance (15-min, hourly)
+
+Note: Uses direct Binance REST API (no SDK) to avoid IP blocking in GitHub Actions
 """
 
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from binance.client import Client
 import yfinance as yf
 import time
 import requests
@@ -139,7 +140,7 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
 
 
 class CryptoDataFetcher:
-    """Fetch Bitcoin data from free APIs (no keys needed)"""
+    """Fetch Bitcoin data from free APIs (no authentication needed)"""
 
     def __init__(self, verbose=False):
         """
@@ -147,20 +148,6 @@ class CryptoDataFetcher:
             verbose (bool): Print status messages (default: False)
         """
         self.verbose = verbose
-        self._binance_client = None
-
-    @property
-    def binance_client(self):
-        """Lazy initialization of Binance client (may fail in geo-restricted locations)"""
-        if self._binance_client is None:
-            try:
-                self._binance_client = Client(api_key=None, api_secret=None)
-            except Exception as e:
-                self._print(f"Warning: Binance SDK initialization failed: {e}")
-                self._print("Will use direct REST API as fallback")
-                # Don't raise - we'll use direct API instead
-                pass
-        return self._binance_client
 
     def _print(self, *args, **kwargs):
         """Conditionally print if verbose=True"""
@@ -257,7 +244,7 @@ class CryptoDataFetcher:
 
     def fetch_binance_15min(self, symbol='BTCUSDT', days=60):
         """
-        Fetch 15-minute Bitcoin data from Binance
+        Fetch 15-minute Bitcoin data from Binance (direct API, no SDK)
 
         Args:
             symbol (str): Trading pair (default: BTCUSDT)
@@ -266,61 +253,11 @@ class CryptoDataFetcher:
         Returns:
             pd.DataFrame: OHLCV data with timestamp index
         """
-        try:
-            self._print(f"Fetching {days}d of 15-min data from Binance...")
-
-            # Try SDK first
-            if self.binance_client is not None:
-                # Calculate time range
-                end_time = datetime.now()
-                start_time = end_time - timedelta(days=days)
-                start_ts = int(start_time.timestamp() * 1000)
-                end_ts = int(end_time.timestamp() * 1000)
-
-                # Fetch klines (no limit - get all available data in time range)
-                # Binance free tier: 6000 weight/min, this call = 1 weight
-                klines = self.binance_client.get_historical_klines(
-                    symbol=symbol,
-                    interval=Client.KLINE_INTERVAL_15MINUTE,
-                    start_str=start_ts,
-                    end_str=end_ts
-                )
-
-                if not klines:
-                    self._print("No data returned from Binance")
-                    return None
-
-                self._print(f"Received {len(klines)} candles")
-
-                # Convert to DataFrame
-                df = pd.DataFrame(klines, columns=[
-                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                    'close_time', 'quote_volume', 'trades', 'taker_buy_base',
-                    'taker_buy_quote', 'ignore'
-                ])
-
-                # Clean up
-                df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-                df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-                for col in ['open', 'high', 'low', 'close', 'volume']:
-                    df[col] = df[col].astype(float)
-                df.set_index('timestamp', inplace=True)
-                df.sort_index(inplace=True)
-
-                self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
-                return df
-            else:
-                # SDK failed, use direct API
-                self._print("SDK unavailable, using direct REST API...")
-                return self._fetch_binance_direct(symbol=symbol, interval='15m', days=days)
-
-        except Exception as e:
-            self._print(f"SDK Error: {e}, trying direct API...")
-            return self._fetch_binance_direct(symbol=symbol, interval='15m', days=days)
+        return self._fetch_binance_direct(symbol=symbol, interval='15m', days=days)
 
     def fetch_binance_1hour(self, symbol='BTCUSDT', days=60):
         """
-        Fetch 1-hour Bitcoin data from Binance
+        Fetch 1-hour Bitcoin data from Binance (direct API, no SDK)
 
         Args:
             symbol (str): Trading pair (default: BTCUSDT)
@@ -329,57 +266,7 @@ class CryptoDataFetcher:
         Returns:
             pd.DataFrame: OHLCV data with timestamp index
         """
-        try:
-            self._print(f"Fetching {days}d of 1-hour data from Binance...")
-
-            # Try SDK first
-            if self.binance_client is not None:
-                # Calculate time range
-                end_time = datetime.now()
-                start_time = end_time - timedelta(days=days)
-                start_ts = int(start_time.timestamp() * 1000)
-                end_ts = int(end_time.timestamp() * 1000)
-
-                # Fetch klines (no limit - get all available data in time range)
-                # Binance free tier: 6000 weight/min, this call = 1 weight
-                klines = self.binance_client.get_historical_klines(
-                    symbol=symbol,
-                    interval=Client.KLINE_INTERVAL_1HOUR,
-                    start_str=start_ts,
-                    end_str=end_ts
-                )
-
-                if not klines:
-                    self._print("No data returned from Binance")
-                    return None
-
-                self._print(f"Received {len(klines)} candles")
-
-                # Convert to DataFrame
-                df = pd.DataFrame(klines, columns=[
-                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                    'close_time', 'quote_volume', 'trades', 'taker_buy_base',
-                    'taker_buy_quote', 'ignore'
-                ])
-
-                # Clean up
-                df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-                df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-                for col in ['open', 'high', 'low', 'close', 'volume']:
-                    df[col] = df[col].astype(float)
-                df.set_index('timestamp', inplace=True)
-                df.sort_index(inplace=True)
-
-                self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
-                return df
-            else:
-                # SDK failed, use direct API
-                self._print("SDK unavailable, using direct REST API...")
-                return self._fetch_binance_direct(symbol=symbol, interval='1h', days=days)
-
-        except Exception as e:
-            self._print(f"SDK Error: {e}, trying direct API...")
-            return self._fetch_binance_direct(symbol=symbol, interval='1h', days=days)
+        return self._fetch_binance_direct(symbol=symbol, interval='1h', days=days)
 
     def fetch_yahoo_daily(self, ticker='BTC-USD', period='2y', interval='1d'):
         """
