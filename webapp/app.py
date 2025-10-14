@@ -24,11 +24,15 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.data_fetcher import get_latest_price
+from utils.prediction_loader import PredictionLoader
 
 app = Flask(__name__)
 
 # Configuration
 RESULTS_DIR = Path(__file__).parent.parent / 'results'
+
+# Initialize prediction loader (fetches from GitHub with caching)
+prediction_loader = PredictionLoader()
 
 
 # ============================================================================
@@ -218,31 +222,66 @@ def get_live_data():
     }
 
 
-def get_blockchain_predictions():
-    """Get predictions stored on blockchain (mock for now)."""
-    # This will be replaced with actual smart contract calls
-    mock_predictions = []
-    base_date = datetime.now() - timedelta(days=30)
-
-    for i in range(30):
-        date = base_date + timedelta(days=i)
-        current_price = 65000 + np.random.randn() * 2000
-        predicted_return = np.random.randn() * 0.02
-        predicted_price = current_price * (1 + predicted_return)
-        actual_price = predicted_price + np.random.randn() * 500
-
-        mock_predictions.append({
-            'date': date.strftime('%Y-%m-%d'),
-            'current_price': round(current_price, 2),
-            'predicted_price_1d': round(predicted_price, 2),
-            'actual_price_1d': round(actual_price, 2),
-            'error': round(abs(actual_price - predicted_price), 2),
-            'mape': round(abs(actual_price - predicted_price) / actual_price * 100, 2),
-            'transaction_hash': f'0x{"".join(np.random.choice(list("0123456789abcdef"), 64))}',
-            'block_number': 12000000 + i * 100
-        })
-
-    return mock_predictions
+def get_predictions_from_github():
+    """Get predictions from GitHub using PredictionLoader."""
+    try:
+        # Fetch predictions from GitHub (with caching)
+        all_predictions = prediction_loader.get_all_predictions()
+        
+        # Process daily predictions for display
+        daily_df = all_predictions.get('daily')
+        hourly_df = all_predictions.get('hourly')
+        min15_df = all_predictions.get('15min')
+        
+        predictions = []
+        
+        # Convert daily predictions to display format
+        if daily_df is not None and len(daily_df) > 0:
+            for _, row in daily_df.iterrows():
+                predictions.append({
+                    'date': row['timestamp'],
+                    'current_price': round(row['current_price'], 2),
+                    'predicted_price_1d': round(row['pred_1d_price'], 2),
+                    'predicted_return_1d': round(row['pred_1d_return'] * 100, 2),
+                    'predicted_price_3d': round(row['pred_3d_price'], 2),
+                    'predicted_return_3d': round(row['pred_3d_return'] * 100, 2),
+                    'predicted_price_7d': round(row['pred_7d_price'], 2),
+                    'predicted_return_7d': round(row['pred_7d_return'] * 100, 2),
+                    'data_source': row.get('data_source', 'unknown'),
+                    'generated_at': row.get('generated_at', 'N/A'),
+                    'timeframe': 'daily'
+                })
+        
+        # Add hourly predictions if needed (optional)
+        if hourly_df is not None and len(hourly_df) > 0:
+            latest_hourly = hourly_df.iloc[-1]
+            predictions.append({
+                'date': latest_hourly['timestamp'],
+                'current_price': round(latest_hourly['current_price'], 2),
+                'predicted_price_1h': round(latest_hourly.get('pred_1h_price', 0), 2),
+                'predicted_return_1h': round(latest_hourly.get('pred_1h_return', 0) * 100, 2),
+                'timeframe': 'hourly',
+                'generated_at': latest_hourly.get('generated_at', 'N/A')
+            })
+        
+        # Add 15-min predictions if needed (optional)
+        if min15_df is not None and len(min15_df) > 0:
+            latest_15min = min15_df.iloc[-1]
+            predictions.append({
+                'date': latest_15min['timestamp'],
+                'current_price': round(latest_15min['current_price'], 2),
+                'predicted_price_15m': round(latest_15min.get('pred_15m_price', 0), 2),
+                'predicted_return_15m': round(latest_15min.get('pred_15m_return', 0) * 100, 2),
+                'timeframe': '15min',
+                'generated_at': latest_15min.get('generated_at', 'N/A')
+            })
+        
+        return predictions
+        
+    except Exception as e:
+        print(f"Error loading predictions from GitHub: {e}")
+        # Return empty list if fetch fails
+        return []
 
 
 # ============================================================================
@@ -275,21 +314,38 @@ def results():
 def live():
     """Page 3: Live Performance & Smart Contract."""
     current_data = get_live_data()
-    blockchain_data = get_blockchain_predictions()
+    predictions_data = get_predictions_from_github()
 
     # Calculate summary stats
-    recent_predictions = blockchain_data[-7:]  # Last 7 days
-    avg_mape = np.mean([p['mape'] for p in recent_predictions])
+    if predictions_data and len(predictions_data) > 0:
+        # Filter daily predictions for stats
+        daily_predictions = [p for p in predictions_data if p.get('timeframe') == 'daily']
+        recent_predictions = daily_predictions[-7:] if len(daily_predictions) > 7 else daily_predictions
+        
+        # Calculate average error if we had actual prices (placeholder for now)
+        avg_mape = 2.5  # Placeholder - would need actual vs predicted comparison
+        
+        # Get latest daily prediction for summary
+        latest_pred = daily_predictions[-1] if daily_predictions else predictions_data[0]
+    else:
+        recent_predictions = []
+        avg_mape = 0.0
+        latest_pred = {
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'current_price': current_data['price'],
+            'predicted_price_1d': current_data['price'],
+            'predicted_return_1d': 0.0
+        }
 
     summary = {
         'current_price': current_data['price'],
         'timestamp': current_data['timestamp'],
-        'total_predictions': len(blockchain_data),
+        'total_predictions': len(predictions_data),
         'avg_mape_7d': round(avg_mape, 2),
-        'latest_prediction': blockchain_data[-1] if blockchain_data else None
+        'latest_prediction': latest_pred
     }
 
-    return render_template('live.html', summary=summary, predictions=blockchain_data)
+    return render_template('live.html', summary=summary, predictions=predictions_data)
 
 
 # ============================================================================
@@ -315,12 +371,39 @@ def api_model_results():
 
 @app.route('/api/blockchain-predictions')
 def api_blockchain_predictions():
-    """Get predictions from blockchain."""
-    predictions = get_blockchain_predictions()
+    """Get predictions from GitHub."""
+    predictions = get_predictions_from_github()
     return jsonify({
         'status': 'success',
         'predictions': predictions
     })
+
+@app.route('/api/predictions/<timeframe>')
+def api_predictions_by_timeframe(timeframe):
+    """Get predictions for specific timeframe (daily, hourly, 15min)."""
+    try:
+        if timeframe not in ['daily', 'hourly', '15min']:
+            return jsonify({'status': 'error', 'message': 'Invalid timeframe'}), 400
+        
+        df = prediction_loader.get_predictions(timeframe)
+        
+        if df is None or len(df) == 0:
+            return jsonify({'status': 'error', 'message': 'No predictions available'}), 404
+        
+        # Convert DataFrame to list of dicts
+        predictions = df.to_dict('records')
+        
+        return jsonify({
+            'status': 'success',
+            'timeframe': timeframe,
+            'count': len(predictions),
+            'predictions': predictions
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 @app.route('/api/feature-definitions')
