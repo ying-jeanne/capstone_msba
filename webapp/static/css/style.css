@@ -4,6 +4,59 @@
 
 /* Variables - Modern Color Palette */
 :root {
+
+.metrics-note {
+    margin-top: 1.5rem;
+    font-size: 0.95rem;
+    color: rgba(15, 23, 42, 0.8);
+}
+
+.metrics-note.subtle {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: rgba(15, 23, 42, 0.6);
+}
+
+.benchmark-callout {
+    margin: 3rem 0;
+    padding: 2rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(6, 182, 212, 0.05));
+    color: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.benchmark-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+}
+
+.benchmark-card {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.1);
+}
+
+.benchmark-card h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    color: #1e293b;
+}
+
+.benchmark-metric {
+    margin: 0.25rem 0;
+    font-size: 1rem;
+    color: #0f172a;
+}
+
+.benchmark-detail {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: rgba(71, 85, 105, 0.8);
+}
     --primary-color: #6366f1;        /* Modern indigo */
     --primary-dark: #4f46e5;         /* Darker indigo for gradients */
     --secondary-color: #f59e0b;      /* Vibrant amber */

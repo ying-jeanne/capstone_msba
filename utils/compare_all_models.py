@@ -17,25 +17,68 @@ import numpy as np
 from pathlib import Path
 
 
+REQUIRED_COLUMNS = [
+    'Model',
+    'Horizon',
+    'MAPE (%)',
+    'MAE ($)',
+    'Directional Acc (%)',
+    'R²',
+    'Mean Error ($)',
+    'RMSE ($)'
+]
+
+
 def load_all_results():
     """Load results from all return-based models."""
     results_dir = Path('results')
+    comparison_path = results_dir / 'model_comparison.csv'
 
-    # Load XGBoost results
-    xgb_results = pd.read_csv(results_dir / 'xgboost_returns_summary.csv')
-    xgb_results['Model'] = 'XGBoost'
+    if comparison_path.exists():
+        df = pd.read_csv(comparison_path)
 
-    # Load Random Forest results
-    rf_results = pd.read_csv(results_dir / 'rf_returns_summary.csv')
-    rf_results['Model'] = 'Random Forest'
+        # Focus on daily horizons (1d, 3d, 7d)
+        df = df[df['Timeframe'].isin(['Daily'])]
+        df = df[df['Horizon'].isin(['1d', '3d', '7d'])]
 
-    # Load Gradient Boosting results
-    gb_results = pd.read_csv(results_dir / 'gb_returns_summary.csv')
-    gb_results['Model'] = 'Gradient Boosting'
+        # Rename columns to legacy format expected downstream
+        df = df.rename(columns={
+            'Price_MAPE': 'MAPE (%)',
+            'Price_MAE': 'MAE ($)',
+            'Directional_Accuracy': 'Directional Acc (%)',
+            'Return_R2': 'R²',
+            'Return_MAE': 'Return MAE'
+        })
 
-    # Combine all results
-    all_results = pd.concat([xgb_results, rf_results, gb_results], ignore_index=True)
+        # Ensure expected columns exist
+        for col in REQUIRED_COLUMNS:
+            if col not in df.columns:
+                df[col] = np.nan
 
+        # Reorder
+        df = df[[col for col in REQUIRED_COLUMNS if col in df.columns] + [c for c in df.columns if c not in REQUIRED_COLUMNS]]
+        return df.reset_index(drop=True)
+
+    # Fallback to legacy CSVs if available
+    legacy_files = {
+        'XGBoost': results_dir / 'xgboost_returns_summary.csv',
+        'Random Forest': results_dir / 'rf_returns_summary.csv',
+        'Gradient Boosting': results_dir / 'gb_returns_summary.csv'
+    }
+
+    frames = []
+    for model_name, path in legacy_files.items():
+        if path.exists():
+            model_df = pd.read_csv(path)
+            model_df['Model'] = model_name
+            frames.append(model_df)
+
+    if not frames:
+        raise FileNotFoundError(
+            "No comparison files found. Expected 'results/model_comparison.csv' or legacy summary CSVs."
+        )
+
+    all_results = pd.concat(frames, ignore_index=True)
     return all_results
 
 
@@ -49,7 +92,18 @@ def create_comparison_visualizations(df):
     fig, axes = plt.subplots(2, 3, figsize=(20, 12))
 
     # Define colors for each model
-    colors = {'XGBoost': '#1f77b4', 'Random Forest': '#ff7f0e', 'Gradient Boosting': '#2ca02c'}
+    palette = plt.get_cmap('tab10')
+    default_colors = {
+        'XGBoost': '#1f77b4',
+        'Random Forest': '#ff7f0e',
+        'Gradient Boosting': '#2ca02c',
+        'CatBoost': '#8b5cf6',
+        'LightGBM': '#10b981'
+    }
+
+    colors = {}
+    for idx, model in enumerate(models):
+        colors[model] = default_colors.get(model, palette(idx % 10))
 
     # 1. R² Comparison
     ax = axes[0, 0]

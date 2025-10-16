@@ -455,7 +455,7 @@ def add_sentiment_features(df, sentiment_data_path=None):
             sys.path.insert(0, str(project_root))
             
             from utils.data_fetcher import get_fear_greed_index
-            sentiment_df = get_fear_greed_index(limit=730, verbose=True)
+            sentiment_df = get_fear_greed_index(limit=0, verbose=True)  # 0 = get all available data
             
             if sentiment_df is None or len(sentiment_df) == 0:
                 print("   ⚠️  Failed to fetch sentiment data. Skipping sentiment features.")

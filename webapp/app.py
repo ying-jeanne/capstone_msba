@@ -172,34 +172,64 @@ def get_feature_definitions():
 
 
 def load_model_results():
-    """Load all model results from CSV files."""
+    """Load REAL model results from your actual training."""
+    results = []
+    
+    # Load Daily Models
     try:
-        results_file = RESULTS_DIR / 'all_models_returns_combined.csv'
-        if results_file.exists():
-            return pd.read_csv(results_file)
-        # Return mock data if file doesn't exist yet
-        return create_mock_results()
+        daily_metrics = RESULTS_DIR / 'daily_models_metrics.csv'
+        if daily_metrics.exists():
+            df = pd.read_csv(daily_metrics)
+            for _, row in df.iterrows():
+                results.append({
+                    'Model': 'XGBoost',
+                    'Timeframe': 'Daily',
+                    'Horizon': row['horizon'],
+                    'MAPE (%)': round(row['price_mape'], 2),
+                    'MAE ($)': round(row['price_mae'], 2),
+                    'R²': round(row['return_test_r2'], 4),
+                    'Directional Accuracy (%)': round(row['directional_accuracy'], 1),
+                    'Train Samples': int(row['train_samples']),
+                    'Test Samples': int(row['test_samples'])
+                })
     except Exception as e:
-        print(f"Error loading results: {e}")
-        return create_mock_results()
-
-
-def create_mock_results():
-    """Create mock results for demonstration."""
-    return pd.DataFrame([
-        # XGBoost
-        {'Model': 'XGBoost', 'Horizon': '1d', 'MAPE (%)': 1.16, 'R²': 0.865, 'MAE ($)': 850, 'Directional Accuracy (%)': 68.5},
-        {'Model': 'XGBoost', 'Horizon': '3d', 'MAPE (%)': 2.34, 'R²': 0.721, 'MAE ($)': 1650, 'Directional Accuracy (%)': 64.2},
-        {'Model': 'XGBoost', 'Horizon': '7d', 'MAPE (%)': 3.89, 'R²': 0.598, 'MAE ($)': 2850, 'Directional Accuracy (%)': 61.8},
-        # Random Forest
-        {'Model': 'Random Forest', 'Horizon': '1d', 'MAPE (%)': 1.89, 'R²': 0.742, 'MAE ($)': 1320, 'Directional Accuracy (%)': 65.3},
-        {'Model': 'Random Forest', 'Horizon': '3d', 'MAPE (%)': 3.12, 'R²': 0.658, 'MAE ($)': 2180, 'Directional Accuracy (%)': 62.1},
-        {'Model': 'Random Forest', 'Horizon': '7d', 'MAPE (%)': 4.78, 'R²': 0.512, 'MAE ($)': 3420, 'Directional Accuracy (%)': 59.4},
-        # Gradient Boosting
-        {'Model': 'Gradient Boosting', 'Horizon': '1d', 'MAPE (%)': 3.14, 'R²': 0.621, 'MAE ($)': 2150, 'Directional Accuracy (%)': 62.7},
-        {'Model': 'Gradient Boosting', 'Horizon': '3d', 'MAPE (%)': 4.89, 'R²': 0.523, 'MAE ($)': 3450, 'Directional Accuracy (%)': 59.8},
-        {'Model': 'Gradient Boosting', 'Horizon': '7d', 'MAPE (%)': 6.45, 'R²': 0.412, 'MAE ($)': 4680, 'Directional Accuracy (%)': 57.2}
-    ])
+        print(f"Warning: Could not load daily metrics: {e}")
+    
+    # Load Hourly Models
+    try:
+        hourly_metrics = RESULTS_DIR / 'hourly_models_metrics.csv'
+        if hourly_metrics.exists():
+            df = pd.read_csv(hourly_metrics)
+            for _, row in df.iterrows():
+                results.append({
+                    'Model': 'XGBoost',
+                    'Timeframe': 'Hourly',
+                    'Horizon': row['horizon'],
+                    'MAPE (%)': round(row['price_mape'], 2),
+                    'MAE ($)': round(row['price_mae'], 2),
+                    'R²': round(row['return_test_r2'], 4),
+                    'Directional Accuracy (%)': round(row['directional_accuracy'], 1),
+                    'Train Samples': int(row['train_samples']),
+                    'Test Samples': int(row['test_samples'])
+                })
+    except Exception as e:
+        print(f"Warning: Could not load hourly metrics: {e}")
+    
+    if len(results) == 0:
+        print("Warning: No metrics found, using placeholder data")
+        return pd.DataFrame([{
+            'Model': 'XGBoost', 
+            'Timeframe': 'Daily',
+            'Horizon': '1d', 
+            'MAPE (%)': 1.53, 
+            'MAE ($)': 1539, 
+            'R²': -0.0000, 
+            'Directional Accuracy (%)': 51.4,
+            'Train Samples': 1138,
+            'Test Samples': 245
+        }])
+    
+    return pd.DataFrame(results)
 
 
 def get_live_data():
@@ -222,20 +252,16 @@ def get_live_data():
     }
 
 
-def get_predictions_from_github():
-    """Get predictions from GitHub using PredictionLoader."""
+def get_local_predictions():
+    """Get predictions from LOCAL prediction files (not GitHub)."""
+    predictions = []
+    predictions_dir = Path(__file__).parent.parent / 'data' / 'predictions'
+    
     try:
-        # Fetch predictions from GitHub (with caching)
-        all_predictions = prediction_loader.get_all_predictions()
-        
-        # Process daily predictions for display
-        daily_df = all_predictions.get('daily')
-        hourly_df = all_predictions.get('hourly')
-        
-        predictions = []
-        
-        # Convert daily predictions to display format
-        if daily_df is not None and len(daily_df) > 0:
+        # Load Daily Predictions
+        daily_file = predictions_dir / 'daily_predictions.csv'
+        if daily_file.exists():
+            daily_df = pd.read_csv(daily_file)
             for _, row in daily_df.iterrows():
                 predictions.append({
                     'date': row['timestamp'],
@@ -246,19 +272,28 @@ def get_predictions_from_github():
                     'predicted_return_3d': round(row['pred_3d_return'] * 100, 2),
                     'predicted_price_7d': round(row['pred_7d_price'], 2),
                     'predicted_return_7d': round(row['pred_7d_return'] * 100, 2),
-                    'data_source': row.get('data_source', 'unknown'),
                     'generated_at': row.get('generated_at', 'N/A'),
                     'timeframe': 'daily'
                 })
         
-        # Add hourly predictions
-        if hourly_df is not None and len(hourly_df) > 0:
+        # Load Hourly Predictions
+        hourly_file = predictions_dir / 'hourly_predictions.csv'
+        if hourly_file.exists():
+            hourly_df = pd.read_csv(hourly_file)
             latest_hourly = hourly_df.iloc[-1]
             predictions.append({
                 'date': latest_hourly['timestamp'],
                 'current_price': round(latest_hourly['current_price'], 2),
                 'predicted_price_1h': round(latest_hourly.get('pred_1h_price', 0), 2),
                 'predicted_return_1h': round(latest_hourly.get('pred_1h_return', 0) * 100, 2),
+                'predicted_price_4h': round(latest_hourly.get('pred_4h_price', 0), 2),
+                'predicted_return_4h': round(latest_hourly.get('pred_4h_return', 0) * 100, 2),
+                'predicted_price_6h': round(latest_hourly.get('pred_6h_price', 0), 2),
+                'predicted_return_6h': round(latest_hourly.get('pred_6h_return', 0) * 100, 2),
+                'predicted_price_12h': round(latest_hourly.get('pred_12h_price', 0), 2),
+                'predicted_return_12h': round(latest_hourly.get('pred_12h_return', 0) * 100, 2),
+                'predicted_price_24h': round(latest_hourly.get('pred_24h_price', 0), 2),
+                'predicted_return_24h': round(latest_hourly.get('pred_24h_return', 0) * 100, 2),
                 'timeframe': 'hourly',
                 'generated_at': latest_hourly.get('generated_at', 'N/A')
             })
@@ -266,8 +301,9 @@ def get_predictions_from_github():
         return predictions
         
     except Exception as e:
-        print(f"Error loading predictions from GitHub: {e}")
-        # Return empty list if fetch fails
+        print(f"Error loading local predictions: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -293,15 +329,84 @@ def methodology():
 def results():
     """Page 2: Test Results."""
     results_df = load_model_results()
-    results_list = results_df.to_dict('records') if results_df is not None else []
-    return render_template('results.html', results=results_list)
+    results_list = []
+
+    balanced_best = None
+    rf_benchmark = None
+    comparison_path = RESULTS_DIR / 'model_comparison.csv'
+    if comparison_path.exists():
+        try:
+            comparison_df = pd.read_csv(comparison_path)
+
+            if len(comparison_df) > 0:
+                df_balanced = comparison_df.copy()
+                df_balanced['Balanced Score'] = df_balanced['Directional_Accuracy'] - 0.5 * df_balanced['Price_MAPE']
+                top_row = df_balanced.sort_values('Balanced Score', ascending=False).iloc[0]
+                balanced_best = {
+                    'Model': top_row['Model'],
+                    'Timeframe': top_row['Timeframe'],
+                    'Horizon': top_row['Horizon'],
+                    'MAPE (%)': top_row['Price_MAPE'],
+                    'MAE ($)': top_row['Price_MAE'],
+                    'Directional Accuracy (%)': top_row['Directional_Accuracy'],
+                    'R²': top_row.get('Return_R2', np.nan),
+                    'Balanced Score': top_row['Balanced Score']
+                }
+
+                display_df = df_balanced.copy()
+                display_df['MAPE (%)'] = display_df['Price_MAPE']
+                display_df['MAE ($)'] = display_df['Price_MAE']
+                display_df['Directional Accuracy (%)'] = display_df['Directional_Accuracy']
+                display_df['R²'] = display_df.get('Return_R2', np.nan)
+                display_df = display_df.sort_values('Balanced Score', ascending=False)
+                results_list = display_df[
+                    ['Model', 'Timeframe', 'Horizon', 'MAPE (%)', 'R²', 'MAE ($)', 'Directional Accuracy (%)', 'Balanced Score']
+                ].to_dict('records')
+
+            daily_rf = comparison_df[
+                (comparison_df['Model'] == 'Random Forest') &
+                (comparison_df['Timeframe'] == 'Daily') &
+                (comparison_df['Horizon'] == '1d')
+            ]
+
+            hourly_rf = comparison_df[
+                (comparison_df['Model'] == 'Random Forest') &
+                (comparison_df['Timeframe'] == 'Hourly') &
+                (comparison_df['Horizon'] == '1h')
+            ]
+
+            if not daily_rf.empty and not hourly_rf.empty:
+                rf_benchmark = {
+                    'daily': daily_rf.iloc[0].to_dict(),
+                    'hourly': hourly_rf.iloc[0].to_dict()
+                }
+        except Exception as exc:
+            print(f"Warning: Could not load Random Forest benchmark: {exc}")
+        else:
+            if results_df is not None and len(results_df) > 0:
+                df_copy = results_df.copy()
+                df_copy['Balanced Score'] = df_copy['Directional Accuracy (%)'] - 0.5 * df_copy['MAPE (%)']
+                balanced_best = df_copy.sort_values('Balanced Score', ascending=False).iloc[0].to_dict()
+                # Sort by MAPE for legacy results
+                df_copy = df_copy.sort_values('MAPE (%)', ascending=True)
+                results_list = df_copy.to_dict('records')
+
+        if (not results_list) and results_df is not None and len(results_df) > 0:
+            df_fallback = results_df.copy()
+            df_fallback['Balanced Score'] = df_fallback['Directional Accuracy (%)'] - 0.5 * df_fallback['MAPE (%)']
+            if balanced_best is None:
+                balanced_best = df_fallback.sort_values('Balanced Score', ascending=False).iloc[0].to_dict()
+            df_fallback = df_fallback.sort_values('MAPE (%)', ascending=True)
+            results_list = df_fallback.to_dict('records')
+
+    return render_template('results.html', results=results_list, balanced_best=balanced_best, rf_benchmark=rf_benchmark)
 
 
 @app.route('/live')
 def live():
     """Page 3: Live Performance & Smart Contract."""
     current_data = get_live_data()
-    predictions_data = get_predictions_from_github()
+    predictions_data = get_local_predictions()
 
     # Calculate summary stats
     if predictions_data and len(predictions_data) > 0:
@@ -356,10 +461,10 @@ def api_model_results():
     })
 
 
-@app.route('/api/blockchain-predictions')
-def api_blockchain_predictions():
-    """Get predictions from GitHub."""
-    predictions = get_predictions_from_github()
+@app.route('/api/predictions')
+def api_all_predictions():
+    """Get all predictions (daily + hourly)."""
+    predictions = get_local_predictions()
     return jsonify({
         'status': 'success',
         'predictions': predictions

@@ -11,3 +11,5 @@ flask
 xgboost
 web3
 requests
+catboost
+lightgbm

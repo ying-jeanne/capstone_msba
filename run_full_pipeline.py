@@ -21,7 +21,7 @@ import subprocess
 from datetime import datetime
 
 # Import data fetcher functions
-from utils.data_fetcher import get_all_sources
+from utils.data_fetcher import get_bitcoin_data_incremental
 
 # Color codes for terminal output
 class Colors:
@@ -114,36 +114,43 @@ def main():
     completed_steps = []
 
     # ========================================================================
-    # STEP 1: Fetch Latest Data
+    # STEP 1: Fetch Latest Data (INCREMENTAL)
     # ========================================================================
-    print_step(1, "FETCH LATEST DATA")
-    print("   This will download the latest Bitcoin price data from: Yahoo Finance and Cryptocompare.")
+    print_step(1, "FETCH LATEST DATA (Incremental)")
+    print("   This will update cached Bitcoin data with only new bars since last fetch.")
+    print("   - Yahoo Finance: 5 years daily (incremental)")
+    print("   - Cryptocompare: 365 days hourly (incremental)")
     try:
-        results = get_all_sources(days=365, yahoo_period='2y', save_to_disk=True)
+        # Fetch Yahoo 5-year data incrementally
+        print("\n📊 Fetching Yahoo Finance daily data (5 years)...")
+        yahoo_df = get_bitcoin_data_incremental(source='yahoo_5y', days=1825, verbose=True)
 
-        # Check results from each source
-        success_count = 0
-        for source, result in results.items():
-            if result['status'] == 'success':
-                samples = result['samples']
-                date_range = result['date_range']
-                filepath = result.get('filepath', 'N/A')
-                print_success(f"{source.capitalize()}: {samples} samples ({date_range['start']} to {date_range['end']})")
-                if filepath != 'N/A':
-                    print(f"   Saved to: {filepath}")
-                success_count += 1
-            else:
-                print_warning(f"{source.capitalize()}: Failed - {result.get('message', 'Unknown error')}")
-
-        if success_count > 0:
-            print_success(f"Data fetching completed: {success_count}/2 sources successful")
-            completed_steps.append("Data Fetching")
+        if yahoo_df is not None:
+            print_success(f"Yahoo: {len(yahoo_df)} samples ({yahoo_df.index[0].date()} to {yahoo_df.index[-1].date()})")
+            completed_steps.append("Yahoo Data Fetch")
         else:
-            print_warning("All data sources failed, but continuing with existing data...")
+            print_warning("Yahoo data fetch failed, using cached data if available")
+
+        # Fetch Cryptocompare hourly data incrementally
+        print("\n📊 Fetching Cryptocompare hourly data (365 days)...")
+        crypto_df = get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, verbose=True)
+
+        if crypto_df is not None:
+            print_success(f"Cryptocompare: {len(crypto_df)} samples ({crypto_df.index[0].date()} to {crypto_df.index[-1].date()})")
+            completed_steps.append("Crypto Data Fetch")
+        else:
+            print_warning("Cryptocompare data fetch failed, using cached data if available")
+
+        if yahoo_df is not None or crypto_df is not None:
+            print_success(f"Data fetching completed (incremental)")
+            if "Yahoo Data Fetch" not in completed_steps and "Crypto Data Fetch" not in completed_steps:
+                completed_steps.append("Data Fetching")
+        else:
+            print_warning("All data sources failed, but continuing with existing cached data...")
 
     except Exception as e:
         print_error(f"Data fetching error: {str(e)}")
-        print_warning("Continuing with existing data...")
+        print_warning("Continuing with existing cached data...")
 
     # ========================================================================
     # STEP 2: Train Daily Models (1d, 3d, 7d)

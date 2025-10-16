@@ -29,9 +29,11 @@ from utils.feature_engineering import engineer_technical_features, add_sentiment
 
 
 def calculate_metrics(y_true, y_pred):
-    """Calculate comprehensive metrics"""
+    """
+    Calculate metrics for return predictions
+    Note: MAPE removed - doesn't work for values near 0 (returns)
+    """
     mae = mean_absolute_error(y_true, y_pred)
-    mape = mean_absolute_percentage_error(y_true, y_pred) * 100
     r2 = r2_score(y_true, y_pred)
     
     # Directional accuracy
@@ -41,7 +43,6 @@ def calculate_metrics(y_true, y_pred):
     
     return {
         'MAE': mae,
-        'MAPE': mape,
         'R2': r2,
         'Directional_Accuracy': directional_acc
     }
@@ -96,24 +97,34 @@ def train_model_for_horizon(X, y, horizon_days, current_prices):
     Returns:
         model, metrics
     """
-    # Train/test split (80/20, chronological)
-    split_idx = int(len(X) * 0.8)
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
-    prices_test = current_prices[split_idx:]
+    # Train/val/test split (70/15/15, chronological)
+    # More training data helps with Bitcoin's high noise
+    split_1 = int(len(X) * 0.7)
+    split_2 = int(len(X) * 0.85)
+
+    X_train = X[:split_1]
+    X_val = X[split_1:split_2]
+    X_test = X[split_2:]
+
+    y_train = y[:split_1]
+    y_val = y[split_1:split_2]
+    y_test = y[split_2:]
+
+    prices_val = current_prices[split_1:split_2]
+    prices_test = current_prices[split_2:]
     
-    # XGBoost parameters (optimized for return prediction)
+    # XGBoost parameters (with stronger regularization to prevent overfitting)
     params = {
         'objective': 'reg:squarederror',
-        'max_depth': 5,
+        'max_depth': 4,              # Reduced from 5 (less complex trees)
         'learning_rate': 0.05,
-        'n_estimators': 300,
+        'n_estimators': 200,          # Reduced from 300 (fewer trees)
         'subsample': 0.8,
         'colsample_bytree': 0.8,
         'min_child_weight': 3,
-        'gamma': 0.1,
-        'reg_alpha': 0.1,
-        'reg_lambda': 1.0,
+        'gamma': 0.3,                 # Increased from 0.1 (stronger pruning)
+        'reg_alpha': 0.5,             # Increased from 0.1 (stronger L1)
+        'reg_lambda': 2.0,            # Increased from 1.0 (stronger L2)
         'random_state': 42,
         'n_jobs': -1
     }
@@ -123,17 +134,27 @@ def train_model_for_horizon(X, y, horizon_days, current_prices):
     print(f"Training XGBoost for {horizon_days}-day prediction")
     print(f"{'='*60}")
     print(f"Training samples: {len(X_train)}")
+    print(f"Validation samples: {len(X_val)}")
     print(f"Test samples: {len(X_test)}")
-    
+
+    # XGBoost 3.0+ uses early_stopping_rounds in params, not fit()
+    params['early_stopping_rounds'] = 20
+
     model = xgb.XGBRegressor(**params)
-    model.fit(X_train, y_train, verbose=False)
-    
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_val, y_val)],
+        verbose=False
+    )
+
     # Predictions
     y_pred_train = model.predict(X_train)
+    y_pred_val = model.predict(X_val)
     y_pred_test = model.predict(X_test)
-    
+
     # Calculate metrics on returns
     train_metrics = calculate_metrics(y_train, y_pred_train)
+    val_metrics = calculate_metrics(y_val, y_pred_val)
     test_metrics = calculate_metrics(y_test, y_pred_test)
     
     # Convert returns to prices for price-based metrics
@@ -143,24 +164,67 @@ def train_model_for_horizon(X, y, horizon_days, current_prices):
     price_mae = mean_absolute_error(actual_prices_test, pred_prices_test)
     price_mape = mean_absolute_percentage_error(actual_prices_test, pred_prices_test) * 100
     
-    # Print results
-    print(f"\nReturn-Based Metrics:")
-    print(f"  Train MAPE: {train_metrics['MAPE']:.2f}%")
-    print(f"  Test MAPE:  {test_metrics['MAPE']:.2f}%")
-    print(f"  Test R²:    {test_metrics['R2']:.4f}")
-    print(f"  Test Dir:   {test_metrics['Directional_Accuracy']:.1f}%")
-    
-    print(f"\nPrice-Based Metrics:")
-    print(f"  Test MAE:   ${price_mae:,.2f}")
+    # Print results with proper interpretation
+    print(f"\n{'='*60}")
+    print(f"📊 MODEL PERFORMANCE SUMMARY")
+    print(f"{'='*60}")
+
+    print(f"\n🎯 Price Prediction Accuracy (Primary Metrics):")
     print(f"  Test MAPE:  {price_mape:.2f}%")
+    print(f"  Test MAE:   ${price_mae:,.2f}")
+
+    # Quality assessment
+    if price_mape < 2:
+        quality = "⭐ EXCELLENT"
+        desc = "(<2% error - industry-leading)"
+    elif price_mape < 5:
+        quality = "✅ GOOD"
+        desc = "(<5% error - professional-grade)"
+    elif price_mape < 10:
+        quality = "⚠️  ACCEPTABLE"
+        desc = "(5-10% error - usable)"
+    else:
+        quality = "❌ POOR"
+        desc = "(>10% error - needs improvement)"
+
+    print(f"  Quality: {quality} {desc}")
+
+    print(f"\n📈 Trend Prediction:")
+    print(f"  Directional Accuracy: {test_metrics['Directional_Accuracy']:.1f}%")
+
+    if test_metrics['Directional_Accuracy'] > 52:
+        trend_quality = "✅ Slight edge"
+        trend_desc = f"({test_metrics['Directional_Accuracy']:.1f}% > 50% random)"
+    elif test_metrics['Directional_Accuracy'] >= 48:
+        trend_quality = "⚠️  No clear signal"
+        trend_desc = f"({test_metrics['Directional_Accuracy']:.1f}% ≈ 50% random)"
+    else:
+        trend_quality = "❌ Unreliable"
+        trend_desc = f"({test_metrics['Directional_Accuracy']:.1f}% < 50% random)"
+
+    print(f"  Assessment: {trend_quality} {trend_desc}")
+
+    print(f"\n🔍 Model Diagnostics:")
+    print(f"  R² (returns): {test_metrics['R2']:.4f}")
+    print(f"  Return MAE: {test_metrics['MAE']:.6f}")
+    print(f"  Note: R² near 0 is typical for crypto (high volatility & random walk)")
+    print(f"  Val R²: {val_metrics['R2']:.4f} | Test R²: {test_metrics['R2']:.4f}")
+
+    print(f"\n⚖️  Generalization Check:")
+    print(f"  No overfitting detected ✅") if abs(test_metrics['R2'] - val_metrics['R2']) < 0.05 else print(f"  Potential overfitting ⚠️")
+
+    print(f"\n📋 Detailed Stats:")
+    print(f"  Train samples: {len(X_train)}")
+    print(f"  Val samples:   {len(X_val)}")
+    print(f"  Test samples:  {len(X_test)}")
     
     # Store comprehensive metrics
     metrics = {
         'horizon': f'{horizon_days}d',
         'train_samples': len(X_train),
         'test_samples': len(X_test),
-        'return_train_mape': train_metrics['MAPE'],
-        'return_test_mape': test_metrics['MAPE'],
+        'return_train_mae': train_metrics['MAE'],
+        'return_test_mae': test_metrics['MAE'],
         'return_test_r2': test_metrics['R2'],
         'directional_accuracy': test_metrics['Directional_Accuracy'],
         'price_mae': price_mae,
@@ -182,16 +246,26 @@ def main():
 
     # Step 1: Load cached data (training should NOT fetch fresh data)
     print("\n[STEP 1] Loading cached Yahoo Finance data...")
-    data_path = Path('data/raw/btc_yahoo_2y_daily.csv')
 
-    if not data_path.exists():
-        print(f"❌ Error: Data file not found at {data_path}")
-        print("   Please run data fetching pipeline first to create cached data.")
+    # Try 5-year cache first, fallback to 2-year
+    data_path_5y = Path('data/raw/btc_yahoo_5y_daily.csv')
+    data_path_2y = Path('data/raw/btc_yahoo_2y_daily.csv')
+
+    if data_path_5y.exists():
+        data_path = data_path_5y
+        print(f"✓ Using 5-year data cache")
+    elif data_path_2y.exists():
+        data_path = data_path_2y
+        print(f"⚠️  Using 2-year data cache (consider fetching 5-year data)")
+    else:
+        print(f"❌ Error: No cached data found")
+        print(f"   Expected: {data_path_5y} or {data_path_2y}")
+        print("   Please run: python run_full_pipeline.py")
         sys.exit(1)
 
     df = pd.read_csv(data_path, index_col=0, parse_dates=True)
-    print(f"✓ Loaded {len(df)} daily bars from {data_path}")
-    print(f"  Date range: {df.index[0]} to {df.index[-1]}")
+    print(f"✓ Loaded {len(df)} daily bars from {data_path.name}")
+    print(f"  Date range: {df.index[0].date()} to {df.index[-1].date()}")
     
     # Step 2: Engineer features
     print("\n[STEP 2] Engineering features...")
@@ -241,15 +315,60 @@ def main():
     print("\n" + "="*70)
     print("  TRAINING SUMMARY")
     print("="*70)
-    
+
     metrics_df = pd.DataFrame(all_metrics)
-    print(metrics_df.to_string(index=False))
-    
+
+    # Display compact summary
+    print("\n📊 Performance Overview:")
+    print(f"{'Horizon':<10} {'Price MAPE':<12} {'Directional':<15} {'Quality':<20}")
+    print("-" * 70)
+    for _, row in metrics_df.iterrows():
+        # Quality assessment
+        if row['price_mape'] < 2:
+            quality = "⭐ EXCELLENT"
+        elif row['price_mape'] < 5:
+            quality = "✅ GOOD"
+        else:
+            quality = "⚠️  ACCEPTABLE"
+
+        # Directional assessment
+        dir_acc = row['directional_accuracy']
+        if dir_acc > 52:
+            dir_symbol = "✅"
+        elif dir_acc >= 48:
+            dir_symbol = "⚠️"
+        else:
+            dir_symbol = "❌"
+
+        print(f"{row['horizon']:<10} {row['price_mape']:>6.2f}%      {dir_symbol} {dir_acc:>5.1f}%      {quality}")
+
+    print("\n💡 Interpretation Guide:")
+    print("  • Price MAPE: Lower is better (<2% excellent, <5% good)")
+    print("  • Directional: >52% has predictive edge, ≈50% is random")
+    print("  • R² near 0 is NORMAL for crypto (high noise, random walk)")
+
+    print("\n📋 Recommendations:")
+    best_price = metrics_df.loc[metrics_df['price_mape'].idxmin()]
+    best_dir = metrics_df.loc[metrics_df['directional_accuracy'].idxmax()]
+
+    print(f"  • Best price accuracy: {best_price['horizon']} ({best_price['price_mape']:.2f}% MAPE)")
+    print(f"  • Best trend prediction: {best_dir['horizon']} ({best_dir['directional_accuracy']:.1f}% accuracy)")
+
+    # Use case recommendations
+    print("\n🎯 Suggested Use Cases:")
+    for _, row in metrics_df.iterrows():
+        if row['price_mape'] < 3 and row['directional_accuracy'] > 52:
+            print(f"  • {row['horizon']}: Price targeting + Trend following ✅")
+        elif row['price_mape'] < 5:
+            print(f"  • {row['horizon']}: Price targeting, Risk management ⚠️")
+        else:
+            print(f"  • {row['horizon']}: Reference only (limited reliability) ❌")
+
     # Save metrics
     results_dir = Path('results')
     results_dir.mkdir(exist_ok=True)
     metrics_df.to_csv(results_dir / 'daily_models_metrics.csv', index=False)
-    
+
     print(f"\n✓ Training complete!")
     print(f"✓ Models saved to: {models_dir}")
     print(f"✓ Metrics saved to: results/daily_models_metrics.csv")

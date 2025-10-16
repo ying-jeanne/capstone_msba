@@ -24,23 +24,23 @@
 <section id="quick-stats" class="quick-stats">
     <div class="stat-card">
         <div class="stat-icon">🎯</div>
-        <div class="stat-value">1.16%</div>
-        <div class="stat-label">Prediction Error (MAPE)</div>
+        <div class="stat-value">1.53%</div>
+        <div class="stat-label">Best Price Error (1d MAPE)</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">📊</div>
-        <div class="stat-value">55+</div>
-        <div class="stat-label">Technical Features</div>
+        <div class="stat-value">58</div>
+        <div class="stat-label">Features (Daily + Sentiment)</div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon">🤖</div>
-        <div class="stat-value">3</div>
-        <div class="stat-label">ML Models Compared</div>
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">56.6%</div>
+        <div class="stat-label">Best Directional (7d)</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">⚡</div>
-        <div class="stat-value">0.865</div>
-        <div class="stat-label">R² Score</div>
+        <div class="stat-value">8</div>
+        <div class="stat-label">Multi-Timeframe Models</div>
     </div>
 </section>
 
@@ -74,8 +74,8 @@
 
 <!-- Feature Categories - Collapsible -->
 <section id="features" class="features-section">
-    <h2>55+ Engineered Features</h2>
-    <p class="section-intro-small">Click any category to see details</p>
+    <h2>58 Engineered Features</h2>
+    <p class="section-intro-small">Daily models: 58 features (55 technical + 3 sentiment) | Hourly models: 55 features (no sentiment) | Click any category to see details</p>
 
     <div class="feature-grid">
         <!-- Technical Indicators -->
@@ -249,30 +249,64 @@
                 </div>
             </div>
         </div>
+
+        <!-- Sentiment Features (Daily Models Only) -->
+        <div class="feature-category-card" onclick="toggleFeature('sentiment')">
+            <div class="feature-card-header">
+                <div class="feature-icon">😨😊</div>
+                <div class="feature-card-content">
+                    <h3>Sentiment Features</h3>
+                    <p class="feature-count">3 features (daily only)</p>
+                </div>
+                <div class="expand-icon" id="icon-sentiment">▼</div>
+            </div>
+        </div>
+        <div class="feature-details-panel" id="details-sentiment">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Fear & Greed Index</strong>
+                    <p><strong>Formula:</strong> Composite score (0-100) from CNN Fear & Greed API</p>
+                    <p><strong>Description:</strong> Market sentiment indicator. 0-25 = Extreme Fear (buy signal), 75-100 = Extreme Greed (sell signal). Only available for daily models.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Fear & Greed Daily Change</strong>
+                    <p><strong>Formula:</strong> fear_greed_change = fear_greed_today - fear_greed_yesterday</p>
+                    <p><strong>Description:</strong> Sentiment momentum. Positive = sentiment improving, negative = sentiment deteriorating.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>Fear & Greed 7-Day MA</strong>
+                    <p><strong>Formula:</strong> fear_greed_ma_7d = mean(fear_greed_value, last 7 days)</p>
+                    <p><strong>Description:</strong> Smoothed sentiment trend. Helps filter out daily noise in sentiment readings.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
 <!-- Models -->
 <section id="models" class="models-section">
-    <h2>Models Compared</h2>
+    <h2>Multi-Timeframe XGBoost Models</h2>
     <div class="models-grid">
         <div class="model-card best-model">
-            <div class="model-badge">⭐ Best</div>
-            <h3>XGBoost</h3>
-            <div class="model-stat">1.16%</div>
-            <p class="model-desc">Gradient boosting with regularization</p>
+            <div class="model-badge">⭐ Best Daily</div>
+            <h3>3-Day Model</h3>
+            <div class="model-stat">2.59% MAPE</div>
+            <p class="model-desc">55.3% directional - profitable edge!</p>
         </div>
         <div class="model-card">
-            <h3>Random Forest</h3>
-            <div class="model-stat">1.89%</div>
-            <p class="model-desc">Ensemble of decision trees</p>
+            <h3>7-Day Model</h3>
+            <div class="model-stat">3.88% MAPE</div>
+            <p class="model-desc">56.6% directional - strong trend!</p>
         </div>
         <div class="model-card">
-            <h3>Gradient Boosting</h3>
-            <div class="model-stat">3.14%</div>
-            <p class="model-desc">Sequential boosting approach</p>
+            <h3>1-Hour Model</h3>
+            <div class="model-stat">0.24% MAPE</div>
+            <p class="model-desc">Best short-term precision</p>
         </div>
     </div>
+    <p style="text-align: center; margin-top: 1rem; color: #7f8c8d;">
+        <strong>8 total models:</strong> Daily (1d, 3d, 7d) + Hourly (1h, 4h, 6h, 12h, 24h)
+    </p>
 </section>
 
 <!-- Pipeline -->

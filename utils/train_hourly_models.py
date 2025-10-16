@@ -1,15 +1,13 @@
 """
 Train Hourly Bitcoin Prediction Models
 =======================================
-Trains XGBoost models for hourly predictions (1h, 4h, 6h, 12h, 24h)
+Trains XGBoost models for hourly predictions (1h, 4h, 12h)
 Uses Cryptocompare 1-hour data (365 days, ~8760 samples)
 
 Output:
 - models/saved_models/hourly/xgboost_1h.json
 - models/saved_models/hourly/xgboost_4h.json
-- models/saved_models/hourly/xgboost_6h.json
 - models/saved_models/hourly/xgboost_12h.json
-- models/saved_models/hourly/xgboost_24h.json
 - models/saved_models/hourly/scaler_hourly.pkl
 - models/saved_models/hourly/feature_cols_hourly.pkl
 """
@@ -29,16 +27,18 @@ from utils.feature_engineering import engineer_technical_features
 
 
 def calculate_metrics(y_true, y_pred):
-    """Calculate comprehensive metrics"""
+    """
+    Calculate metrics for return predictions
+    Note: MAPE removed - doesn't work for values near 0 (returns)
+    """
     mae = mean_absolute_error(y_true, y_pred)
-    mape = mean_absolute_percentage_error(y_true, y_pred) * 100
     r2 = r2_score(y_true, y_pred)
     
     direction_true = np.sign(y_true)
     direction_pred = np.sign(y_pred)
     directional_acc = np.mean(direction_true == direction_pred) * 100
     
-    return {'MAE': mae, 'MAPE': mape, 'R2': r2, 'Directional_Accuracy': directional_acc}
+    return {'MAE': mae, 'R2': r2, 'Directional_Accuracy': directional_acc}
 
 def prepare_data_for_horizon(df, horizon_hours=1):
     """Prepare data for specific prediction horizon (in hours)"""
@@ -63,22 +63,34 @@ def prepare_data_for_horizon(df, horizon_hours=1):
 
 def train_model_for_horizon(X, y, horizon_hours, current_prices):
     """Train XGBoost model for specific horizon"""
-    split_idx = int(len(X) * 0.8)
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
-    prices_test = current_prices[split_idx:]
-    
+    # Train/val/test split (70/15/15, chronological)
+    # More training data helps with Bitcoin's high noise
+    split_1 = int(len(X) * 0.7)
+    split_2 = int(len(X) * 0.85)
+
+    X_train = X[:split_1]
+    X_val = X[split_1:split_2]
+    X_test = X[split_2:]
+
+    y_train = y[:split_1]
+    y_val = y[split_1:split_2]
+    y_test = y[split_2:]
+
+    prices_val = current_prices[split_1:split_2]
+    prices_test = current_prices[split_2:]
+
+    # XGBoost parameters (with stronger regularization)
     params = {
         'objective': 'reg:squarederror',
-        'max_depth': 4,
+        'max_depth': 3,              # Reduced from 4 (hourly needs simpler model)
         'learning_rate': 0.05,
-        'n_estimators': 200,
+        'n_estimators': 150,          # Reduced from 200
         'subsample': 0.8,
         'colsample_bytree': 0.8,
         'min_child_weight': 3,
-        'gamma': 0.1,
-        'reg_alpha': 0.1,
-        'reg_lambda': 1.0,
+        'gamma': 0.3,                 # Increased from 0.1
+        'reg_alpha': 0.5,             # Increased from 0.1
+        'reg_lambda': 2.0,            # Increased from 1.0
         'random_state': 42,
         'n_jobs': -1
     }
@@ -87,15 +99,25 @@ def train_model_for_horizon(X, y, horizon_hours, current_prices):
     print(f"Training XGBoost for {horizon_hours}-hour prediction")
     print(f"{'='*60}")
     print(f"Training samples: {len(X_train)}")
+    print(f"Validation samples: {len(X_val)}")
     print(f"Test samples: {len(X_test)}")
-    
+
+    # XGBoost 3.0+ uses early_stopping_rounds in params, not fit()
+    params['early_stopping_rounds'] = 15
+
     model = xgb.XGBRegressor(**params)
-    model.fit(X_train, y_train, verbose=False)
-    
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_val, y_val)],
+        verbose=False
+    )
+
     y_pred_train = model.predict(X_train)
+    y_pred_val = model.predict(X_val)
     y_pred_test = model.predict(X_test)
-    
+
     train_metrics = calculate_metrics(y_train, y_pred_train)
+    val_metrics = calculate_metrics(y_val, y_pred_val)
     test_metrics = calculate_metrics(y_test, y_pred_test)
     
     pred_prices_test = prices_test * (1 + y_pred_test)
@@ -105,11 +127,22 @@ def train_model_for_horizon(X, y, horizon_hours, current_prices):
     price_mape = mean_absolute_percentage_error(actual_prices_test, pred_prices_test) * 100
     
     print(f"\nReturn-Based Metrics:")
-    print(f"  Train MAPE: {train_metrics['MAPE']:.2f}%")
-    print(f"  Test MAPE:  {test_metrics['MAPE']:.2f}%")
+    print(f"  Train MAE:  {train_metrics['MAE']:.6f}")
+    print(f"  Val MAE:    {val_metrics['MAE']:.6f}")
+    print(f"  Test MAE:   {test_metrics['MAE']:.6f}")
     print(f"  Test R²:    {test_metrics['R2']:.4f}")
     print(f"  Test Dir:   {test_metrics['Directional_Accuracy']:.1f}%")
-    
+
+    # Overfitting check (use R² instead of MAPE for returns)
+    train_val_r2_gap = abs(train_metrics['R2'] - val_metrics['R2'])
+    train_test_r2_gap = abs(train_metrics['R2'] - test_metrics['R2'])
+
+    print(f"\nOverfitting Check:")
+    print(f"  Train-Val R² Gap:  {train_val_r2_gap:.4f} {'⚠️  OVERFITTING' if train_val_r2_gap > 0.05 else '✅ OK'}")
+    print(f"  Train-Test R² Gap: {train_test_r2_gap:.4f} {'⚠️  OVERFITTING' if train_test_r2_gap > 0.05 else '✅ OK'}")
+    print(f"  Val R²:   {val_metrics['R2']:.4f}")
+    print(f"  Test R²:  {test_metrics['R2']:.4f} {'✅ POSITIVE' if test_metrics['R2'] > 0 else '❌ NEGATIVE'}")
+
     print(f"\nPrice-Based Metrics:")
     print(f"  Test MAE:   ${price_mae:,.2f}")
     print(f"  Test MAPE:  {price_mape:.2f}%")
@@ -118,8 +151,8 @@ def train_model_for_horizon(X, y, horizon_hours, current_prices):
         'horizon': f'{horizon_hours}h',
         'train_samples': len(X_train),
         'test_samples': len(X_test),
-        'return_train_mape': train_metrics['MAPE'],
-        'return_test_mape': test_metrics['MAPE'],
+        'return_train_mae': train_metrics['MAE'],
+        'return_test_mae': test_metrics['MAE'],
         'return_test_r2': test_metrics['R2'],
         'directional_accuracy': test_metrics['Directional_Accuracy'],
         'price_mae': price_mae,

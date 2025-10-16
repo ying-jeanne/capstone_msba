@@ -50,7 +50,9 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
     cache_path.mkdir(parents=True, exist_ok=True)
 
     if source == 'yahoo':
-        cache_file = cache_path / 'btc_yahoo_2y_daily.csv'
+        cache_file = cache_path / 'btc_yahoo_2y_daily.csv'  # Keep same name for compatibility
+    elif source == 'yahoo_5y':
+        cache_file = cache_path / 'btc_yahoo_5y_daily.csv'  # New: 5-year cache
     elif source == 'cryptocompare_1h':
         cache_file = cache_path / 'btc_cryptocompare_365d_1hour.csv'
     else:
@@ -95,6 +97,9 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
         if source == 'yahoo':
             # Keep 2 years for Yahoo
             cutoff = datetime.now() - timedelta(days=730)
+        elif source == 'yahoo_5y':
+            # Keep 5 years for Yahoo 5y
+            cutoff = datetime.now() - timedelta(days=1825)  # 5 * 365
         elif source == 'cryptocompare_1h':
             # Keep 365 days for hourly
             cutoff = datetime.now() - timedelta(days=365)
@@ -114,9 +119,17 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
     else:
         # No cache, fetch full history
         if verbose:
-            print(f"  No cache found, fetching full {days} days...")
+            print(f"  No cache found, fetching full history...")
 
-        result = get_bitcoin_data(source=source, days=days, period='2y', return_dict=True, verbose=verbose)
+        # Determine period for Yahoo Finance
+        if source == 'yahoo':
+            period = '2y'
+        elif source == 'yahoo_5y':
+            period = '5y'
+        else:
+            period = None
+
+        result = get_bitcoin_data(source=source.replace('_5y', ''), days=days, period=period, return_dict=True, verbose=verbose)
 
         if result['status'] != 'success' or result['data'] is None:
             if verbose:
