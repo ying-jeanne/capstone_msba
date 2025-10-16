@@ -25,7 +25,7 @@ import sys
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.feature_engineering import engineer_technical_features
+from utils.feature_engineering import engineer_technical_features, add_sentiment_features
 
 
 def calculate_metrics(y_true, y_pred):
@@ -196,7 +196,12 @@ def main():
     # Step 2: Engineer features
     print("\n[STEP 2] Engineering features...")
     df = engineer_technical_features(df)
-    print(f"✓ Created {len(df.columns)} features")
+    print(f"✓ Created {len(df.columns)} technical features")
+    
+    # Step 2b: Add sentiment features
+    print("\n[STEP 2b] Adding sentiment features...")
+    df = add_sentiment_features(df)
+    print(f"✓ Total features (technical + sentiment): {len(df.columns)}")
     
     # Step 3: Train models for each horizon
     horizons = [1, 3, 7]

@@ -20,7 +20,7 @@ from datetime import datetime
 sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.data_fetcher import get_bitcoin_data
-from utils.feature_engineering import engineer_technical_features
+from utils.feature_engineering import engineer_technical_features, add_sentiment_features
 
 
 def load_models(models_dir):
@@ -154,7 +154,12 @@ def main():
         # Step 3: Engineer features
         print("\n[STEP 3] Engineering features...")
         df = engineer_technical_features(df)
-        print(f"✓ Created features")
+        print(f"✓ Created technical features")
+        
+        # Step 3b: Add sentiment features
+        print("\n[STEP 3b] Adding sentiment features...")
+        df = add_sentiment_features(df)
+        print(f"✓ Added sentiment features")
         
         # Step 4: Prepare latest data point
         print("\n[STEP 4] Preparing latest data point...")

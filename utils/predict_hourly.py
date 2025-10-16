@@ -1,16 +1,15 @@
 """
-Generate Hourly and 15-Minute Bitcoin Price Predictions
+Generate Hourly Predictions
 ========================================================
-Loads pre-trained hourly and 15-min models and generates predictions
+Loads pre-trained hourly models and generates predictions
 
-Hourly predictions: 1h, 6h, 24h
-15-min predictions: 15m, 1h, 4h
+Hourly predictions: 1h, 4h, 6h, 12h, 24h (Option A: Comprehensive)
 
 This script runs fast (~40 seconds) - NO TRAINING HAPPENS HERE
 
 Output: 
 - data/predictions/hourly_predictions.csv
-- data/predictions/15min_predictions.csv
+- data/predictions/hourly_predictions_history.csv
 """
 
 import pandas as pd
@@ -127,14 +126,14 @@ def generate_hourly_predictions():
     
     # Load models
     print("\n[1/5] Loading hourly models...")
-    models, scaler, feature_cols = load_models_for_timeframe(models_dir, ['1h', '6h', '24h'])
-    print(f"✓ Loaded 3 models (1h, 6h, 24h)")
-    print(f"  Note: Models predict 1h/6h/24h ahead using TRUE 1-hour candles from Binance")
+    models, scaler, feature_cols = load_models_for_timeframe(models_dir, ['1h', '4h', '6h', '12h', '24h'])
+    print(f"✓ Loaded 5 models (1h, 4h, 6h, 12h, 24h)")
+    print(f"  Note: Models predict ahead using TRUE 1-hour candles from Cryptocompare")
 
     # Fetch data (365 days to match training data and prevent overfitting)
     # Use incremental fetch to only fetch new data if cache exists
-    print("\n[2/5] Fetching Binance 1-hour data (incremental update)...")
-    df = get_bitcoin_data_incremental(source='binance_1h', days=365, verbose=True)
+    print("\n[2/5] Fetching Cryptocompare 1-hour data (incremental update)...")
+    df = get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, verbose=True)
 
     if df is None or df.empty:
         raise Exception("Failed to fetch data")
@@ -159,77 +158,23 @@ def generate_hourly_predictions():
 
     print(f"\nHOURLY PREDICTIONS:")
     print(f"  Current: ${current_price:,.2f}")
-    print(f"  1h:  ${predictions['1h']['predicted_price']:,.2f} ({predictions['1h']['change_percent']:+.2f}%)")
-    print(f"  6h:  ${predictions['6h']['predicted_price']:,.2f} ({predictions['6h']['change_percent']:+.2f}%)")
-    print(f"  24h: ${predictions['24h']['predicted_price']:,.2f} ({predictions['24h']['change_percent']:+.2f}%)")
+    print(f"  1h:  ${predictions['1h']['predicted_price']:,.2f} ({predictions['1h']['change_percent']:+.2f}%) [Scalping]")
+    print(f"  4h:  ${predictions['4h']['predicted_price']:,.2f} ({predictions['4h']['change_percent']:+.2f}%) [Intraday]")
+    print(f"  6h:  ${predictions['6h']['predicted_price']:,.2f} ({predictions['6h']['change_percent']:+.2f}%) [Quarter-day]")
+    print(f"  12h: ${predictions['12h']['predicted_price']:,.2f} ({predictions['12h']['change_percent']:+.2f}%) [Half-day]")
+    print(f"  24h: ${predictions['24h']['predicted_price']:,.2f} ({predictions['24h']['change_percent']:+.2f}%) [Daily bridge]")
 
     # Save
     save_predictions(predictions, current_price, current_timestamp, output_path,
-                    'binance_1h', 'hourly')
+                    'cryptocompare_1h', 'hourly')
     print(f"\n✓ Saved to {output_path}")
     
     return predictions
-
-
-def generate_15min_predictions():
-    """Generate 15-minute predictions (15m, 1h, 4h)"""
-    print("\n" + "="*70)
-    print("  15-MINUTE PREDICTIONS GENERATOR")
-    print("="*70)
-    
-    models_dir = Path('models/saved_models/15min')
-    output_dir = Path('data/predictions')
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / '15min_predictions.csv'
-    
-    # Load models
-    print("\n[1/5] Loading 15-min models...")
-    models, scaler, feature_cols = load_models_for_timeframe(models_dir, ['15m', '1h', '4h'])
-    print(f"✓ Loaded 3 models (15m, 1h, 4h)")
-    
-    # Fetch data (use incremental fetch to only fetch new data)
-    print("\n[2/5] Fetching Binance 15-min data (incremental update)...")
-    df = get_bitcoin_data_incremental(source='binance', days=60, verbose=True)
-
-    if df is None or df.empty:
-        raise Exception("Failed to fetch data")
-
-    print(f"✓ Loaded {len(df)} 15-min bars")
-    print(f"  Current price: ${df['close'].iloc[-1]:,.2f}")
-    
-    # Engineer features
-    print("\n[3/5] Engineering features...")
-    df = engineer_technical_features(df)
-    print(f"✓ Created features")
-    
-    # Prepare data
-    print("\n[4/5] Preparing latest data...")
-    latest_features_scaled, current_price, current_timestamp = prepare_latest_data(
-        df, feature_cols, scaler
-    )
-    
-    # Generate predictions
-    print("\n[5/5] Generating predictions...")
-    predictions = generate_predictions(models, latest_features_scaled, current_price)
-    
-    print(f"\n15-MIN PREDICTIONS:")
-    print(f"  Current: ${current_price:,.2f}")
-    print(f"  15m: ${predictions['15m']['predicted_price']:,.2f} ({predictions['15m']['change_percent']:+.2f}%)")
-    print(f"  1h:  ${predictions['1h']['predicted_price']:,.2f} ({predictions['1h']['change_percent']:+.2f}%)")
-    print(f"  4h:  ${predictions['4h']['predicted_price']:,.2f} ({predictions['4h']['change_percent']:+.2f}%)")
-    
-    # Save
-    save_predictions(predictions, current_price, current_timestamp, output_path, 
-                    'binance', '15min')
-    print(f"\n✓ Saved to {output_path}")
-    
-    return predictions
-
 
 def main():
     """Main prediction pipeline"""
     print("\n" + "="*70)
-    print("  HOURLY + 15-MIN PREDICTIONS")
+    print("  HOURLY PREDICTIONS (1h, 4h, 6h, 12h, 24h)")
     print("="*70)
     print(f"  Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*70)
@@ -238,11 +183,8 @@ def main():
         # Generate hourly predictions
         hourly_preds = generate_hourly_predictions()
         
-        # Generate 15-min predictions
-        min15_preds = generate_15min_predictions()
-        
         print("\n" + "="*70)
-        print("  ✓ ALL PREDICTIONS COMPLETE")
+        print("  ✓ HOURLY PREDICTIONS COMPLETE")
         print("="*70 + "\n")
         
         return 0

@@ -117,9 +117,9 @@ def main():
     # STEP 1: Fetch Latest Data
     # ========================================================================
     print_step(1, "FETCH LATEST DATA")
-    print("   This will download the latest Bitcoin price data from: Yahoo Finance and Binance.")
+    print("   This will download the latest Bitcoin price data from: Yahoo Finance and Cryptocompare.")
     try:
-        results = get_all_sources(days=60, yahoo_period='2y', save_to_disk=True)
+        results = get_all_sources(days=365, yahoo_period='2y', save_to_disk=True)
 
         # Check results from each source
         success_count = 0
@@ -136,7 +136,7 @@ def main():
                 print_warning(f"{source.capitalize()}: Failed - {result.get('message', 'Unknown error')}")
 
         if success_count > 0:
-            print_success(f"Data fetching completed: {success_count}/3 sources successful")
+            print_success(f"Data fetching completed: {success_count}/2 sources successful")
             completed_steps.append("Data Fetching")
         else:
             print_warning("All data sources failed, but continuing with existing data...")
@@ -146,93 +146,61 @@ def main():
         print_warning("Continuing with existing data...")
 
     # ========================================================================
-    # STEP 2: Feature Engineering
+    # STEP 2: Train Daily Models (1d, 3d, 7d)
     # ========================================================================
-    print_step(2, "FEATURE ENGINEERING")
-    print("   Creating 55 technical indicators from raw OHLCV data:")
-    print("   - Trend indicators (SMA, EMA, MACD, ADX)")
-    print("   - Momentum indicators (RSI, Stochastic, ROC)")
-    print("   - Volatility indicators (Bollinger Bands, ATR)")
-    print("   - Statistical features (lags, rolling stats)")
-
-    if run_script("utils/feature_engineering.py", "Create 55 technical indicators"):
-        completed_steps.append("Feature Engineering")
-    else:
-        print_error("Feature engineering failed. Cannot continue.")
-        return
-
-    # ========================================================================
-    # STEP 3: Data Preparation (Return-Based Targets)
-    # ========================================================================
-    print_step(3, "DATA PREPARATION (RETURN-BASED)")
-    print("   Preparing data with return-based targets:")
-    print("   - Creating return targets (for training)")
-    print("   - Creating price targets (for evaluation)")
-    print("   - Chronological train/val/test split (70/15/15)")
-    print("   - RobustScaler normalization")
-    print("   - Multi-horizon targets (1, 3, 7 days)")
-
-    if run_script("utils/data_preparation_returns.py", "Prepare return-based targets"):
-        completed_steps.append("Data Preparation")
-    else:
-        print_error("Data preparation failed. Cannot continue.")
-        return
-
-    # ========================================================================
-    # STEP 4: Train XGBoost (Best Model)
-    # ========================================================================
-    print_step(4, "TRAIN XGBOOST (BEST MODEL)")
-    print("   Training XGBoost with return-based prediction:")
-    print("   - Expected MAPE: ~1.16% (1-day)")
-    print("   - Expected R²: ~0.865 (1-day)")
+    print_step(2, "TRAIN DAILY MODELS (1d, 3d, 7d)")
+    print("   Training daily XGBoost models:")
+    print("   - Uses Yahoo Finance 2y daily data")
+    print("   - Includes sentiment features (Fear & Greed)")
+    print("   - Expected MAPE: ~1.30% (1-day)")
     print("   - Training 3 models: 1-day, 3-day, 7-day")
 
-    if run_script("models/xgboost_returns.py", "Train XGBoost models"):
-        completed_steps.append("XGBoost Training")
+    if run_script("utils/train_daily_models.py", "Train daily XGBoost models"):
+        completed_steps.append("Daily Models Training")
     else:
-        print_warning("XGBoost training failed, but continuing...")
+        print_warning("Daily models training failed, but continuing...")
 
     # ========================================================================
-    # STEP 5: Train Random Forest & Gradient Boosting
+    # STEP 3: Train Hourly Models (1h, 4h, 6h, 12h, 24h)
     # ========================================================================
-    print_step(5, "TRAIN RANDOM FOREST & GRADIENT BOOSTING")
-    print("   Training additional models for comparison:")
-    print("   - Random Forest (expected MAPE: ~1.89%)")
-    print("   - Gradient Boosting (expected MAPE: ~3.14%)")
-    print("   - 3 models each: 1-day, 3-day, 7-day")
+    print_step(3, "TRAIN HOURLY MODELS (1h, 4h, 6h, 12h, 24h)")
+    print("   Training hourly XGBoost models:")
+    print("   - Uses Cryptocompare 365d hourly data")
+    print("   - NO sentiment (Fear & Greed is daily only)")
+    print("   - Training 5 models: 1h, 4h, 6h, 12h, 24h")
 
-    if run_script("models/sklearn_models_returns.py", "Train RF & GB models"):
-        completed_steps.append("RF & GB Training")
+    if run_script("utils/train_hourly_models.py", "Train hourly XGBoost models"):
+        completed_steps.append("Hourly Models Training")
     else:
-        print_warning("RF & GB training failed, but continuing...")
+        print_warning("Hourly models training failed, but continuing...")
 
     # ========================================================================
-    # STEP 6: Compare All Models
+    # STEP 4: Generate Daily Predictions
     # ========================================================================
-    print_step(6, "COMPARE ALL MODELS")
-    print("   Generating comprehensive comparison reports:")
-    print("   - Performance metrics (MAPE, R², MAE, Directional Accuracy)")
-    print("   - Rankings by metric")
-    print("   - Visualizations")
+    print_step(4, "GENERATE DAILY PREDICTIONS")
+    print("   Generating predictions using trained daily models:")
+    print("   - 1-day, 3-day, 7-day predictions")
+    print("   - Saves to data/predictions/daily_predictions.csv")
 
-    if run_script("utils/compare_all_models.py", "Compare all models"):
-        completed_steps.append("Model Comparison")
+    if run_script("utils/predict_daily.py", "Generate daily predictions"):
+        completed_steps.append("Daily Predictions")
     else:
-        print_warning("Model comparison failed, but continuing...")
+        print_warning("Daily predictions failed, but continuing...")
 
     # ========================================================================
-    # STEP 7: Diagnose Bias
+    # STEP 5: Generate Hourly Predictions
     # ========================================================================
-    print_step(7, "DIAGNOSE BIAS")
-    print("   Verifying systematic bias has been eliminated:")
-    print("   - Before/after comparison")
-    print("   - Success criteria verification")
-    print("   - Diagnostic visualizations")
+    print_step(5, "GENERATE HOURLY PREDICTIONS")
+    print("   Generating predictions using trained hourly models:")
+    print("   - 1h, 4h, 6h, 12h, 24h predictions")
+    print("   - Saves to data/predictions/hourly_predictions.csv")
 
-    if run_script("utils/diagnose_bias.py", "Verify bias elimination"):
-        completed_steps.append("Bias Diagnosis")
+    if run_script("utils/predict_hourly.py", "Generate hourly predictions"):
+        completed_steps.append("Hourly Predictions")
     else:
-        print_warning("Bias diagnosis failed, but continuing...")
+        print_warning("Hourly predictions failed, but continuing...")
+
+
 
     # ========================================================================
     # SUMMARY
@@ -243,7 +211,7 @@ def main():
     for i, step in enumerate(completed_steps, 1):
         print(f"   {Colors.OKGREEN}✓{Colors.ENDC} {step}")
 
-    total_steps = 7
+    total_steps = 5  # Updated: Data, Features, DataPrep, Daily, Hourly
     success_rate = (len(completed_steps) / total_steps) * 100
 
     print(f"\n{Colors.BOLD}Success Rate: {success_rate:.0f}% ({len(completed_steps)}/{total_steps} steps){Colors.ENDC}")
@@ -257,19 +225,22 @@ def main():
 
     # Show where results are
     print(f"\n{Colors.BOLD}Results Location:{Colors.ENDC}")
-    print(f"   📊 Performance Metrics: {Colors.OKCYAN}results/all_models_returns_combined.csv{Colors.ENDC}")
-    print(f"   📈 Visualizations: {Colors.OKCYAN}results/all_models_returns_comparison.png{Colors.ENDC}")
-    print(f"   🔍 Bias Analysis: {Colors.OKCYAN}results/bias_fix_diagnostic.png{Colors.ENDC}")
-    print(f"   🤖 Trained Models: {Colors.OKCYAN}models/saved_models/*_returns_*.json/.pkl{Colors.ENDC}")
+    print(f"   📊 Daily Models: {Colors.OKCYAN}models/saved_models/daily/{Colors.ENDC}")
+    print(f"   📊 Hourly Models: {Colors.OKCYAN}models/saved_models/hourly/{Colors.ENDC}")
+    print(f"   📈 Daily Predictions: {Colors.OKCYAN}data/predictions/daily_predictions.csv{Colors.ENDC}")
+    print(f"   📈 Hourly Predictions: {Colors.OKCYAN}data/predictions/hourly_predictions.csv{Colors.ENDC}")
+    print(f"   � Daily Metrics: {Colors.OKCYAN}results/daily_models_metrics.csv{Colors.ENDC}")
+    print(f"   📋 Hourly Metrics: {Colors.OKCYAN}results/hourly_models_metrics.csv{Colors.ENDC}")
 
     print(f"\n{Colors.BOLD}Pipeline End Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.ENDC}")
     print(f"\n{'='*70}\n")
 
     # Show next steps
     print(f"{Colors.BOLD}NEXT STEPS:{Colors.ENDC}")
-    print(f"   1. View results: {Colors.OKCYAN}open results/{Colors.ENDC}")
-    print(f"   2. Check models: {Colors.OKCYAN}ls -lh models/saved_models/{Colors.ENDC}")
-    print(f"   3. Read documentation: {Colors.OKCYAN}cat README.md{Colors.ENDC}")
+    print(f"   1. View daily predictions: {Colors.OKCYAN}cat data/predictions/daily_predictions.csv{Colors.ENDC}")
+    print(f"   2. View hourly predictions: {Colors.OKCYAN}cat data/predictions/hourly_predictions.csv{Colors.ENDC}")
+    print(f"   3. Check model performance: {Colors.OKCYAN}cat results/*_metrics.csv{Colors.ENDC}")
+    print(f"   4. Read documentation: {Colors.OKCYAN}cat DATASOURCE.md{Colors.ENDC}")
     print(f"\n{'='*70}\n")
 
 

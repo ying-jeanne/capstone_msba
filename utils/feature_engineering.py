@@ -9,12 +9,14 @@ This module creates a rich feature space by combining:
 4. Returns and momentum (price changes)
 5. Time-based features (cyclical encoding)
 6. Interaction features (feature combinations)
+7. Sentiment features (Fear & Greed Index)
 
 Why feature engineering matters:
 - Raw OHLCV data alone is limited (only 5 features)
 - Technical indicators capture market patterns and psychology
 - Multiple timeframes (short/medium/long) capture different trends
 - Lag features give the model "memory" of recent prices
+- Sentiment captures market psychology and crowd behavior
 - More features = better model performance (if done right)
 """
 
@@ -22,6 +24,7 @@ import pandas as pd
 import numpy as np
 import ta
 from datetime import datetime
+from pathlib import Path
 
 def engineer_technical_features(df):
     """
@@ -169,7 +172,7 @@ def engineer_technical_features(df):
     # 2. LAG FEATURES (Historical Values)
     # =========================================================================
 
-    print("\n2️⃣  Creating Lag Features (Historical Values)...")
+    print("\n Creating Lag Features (Historical Values)...")
 
     # Lag features give the model "memory" of recent prices
     # LSTM models learn patterns from sequences, but traditional ML needs explicit lags
@@ -383,7 +386,143 @@ def engineer_technical_features(df):
     print(f"\n✅ Final dataset shape: {df.shape}")
     print(f"   Rows: {df.shape[0]:,}")
     print(f"   Columns: {df.shape[1]}")
+    return df
 
+
+def add_sentiment_features(df, sentiment_data_path=None):
+    """
+    Add Fear & Greed Index sentiment features to the dataset
+    
+    This function merges Fear & Greed Index data with technical features
+    and creates additional sentiment-based features that capture market
+    psychology and crowd behavior.
+    
+    Why sentiment matters:
+    - Market psychology drives price movements
+    - Extreme fear often precedes bottoms (buy signal)
+    - Extreme greed often precedes tops (sell signal)
+    - Sentiment changes can predict trend reversals
+    
+    DATA LEAKAGE PREVENTION:
+    ========================
+    Fear & Greed Index updates at ~08:00 UTC daily with data for that date.
+    Our predictions run at 18:00 UTC (10 hours later).
+    
+    Timeline example (Oct 16, 2025):
+    - 00:00 UTC: Oct 15 closing price available (Yahoo Finance)
+    - 08:00 UTC: Oct 16 Fear & Greed published
+    - 18:00 UTC: We run predictions
+      → Use Oct 15 price + Oct 16 sentiment (both PAST data)
+      → Predict Oct 17 closing price
+    
+    ✅ NO FUTURE DATA is used - sentiment for date T is available before
+    we predict the close of date T+1.
+    
+    Args:
+        df (pd.DataFrame): DataFrame with technical features (datetime index)
+        sentiment_data_path (str): Path to saved sentiment CSV (optional)
+            If None, will fetch from API
+    
+    Returns:
+        pd.DataFrame: Original data + 3 sentiment features
+        
+    Features Added:
+        - fear_greed_value: Raw index value (0-100)
+        - fear_greed_change_1d: Day-over-day sentiment change
+        - fear_greed_ma_7d: 7-day moving average (smoothed trend)
+    """
+    
+    print("\n" + "=" * 70)
+    print("  ADDING SENTIMENT FEATURES")
+    print("=" * 70)
+    
+    df = df.copy()
+    original_shape = df.shape
+    
+    # Try to load cached sentiment data first
+    if sentiment_data_path and Path(sentiment_data_path).exists():
+        print(f"\n📂 Loading cached sentiment data from: {sentiment_data_path}")
+        sentiment_df = pd.read_csv(sentiment_data_path, index_col='timestamp', parse_dates=True)
+        print(f"   ✓ Loaded {len(sentiment_df)} days of sentiment data")
+    else:
+        # Fetch from API
+        print("\n📊 Fetching Fear & Greed Index from API...")
+        try:
+            import sys
+            from pathlib import Path
+            # Add project root to path for imports
+            project_root = Path(__file__).parent.parent
+            sys.path.insert(0, str(project_root))
+            
+            from utils.data_fetcher import get_fear_greed_index
+            sentiment_df = get_fear_greed_index(limit=730, verbose=True)
+            
+            if sentiment_df is None or len(sentiment_df) == 0:
+                print("   ⚠️  Failed to fetch sentiment data. Skipping sentiment features.")
+                return df
+            
+            print(f"   ✓ Fetched {len(sentiment_df)} days of sentiment data")
+            
+        except Exception as e:
+            print(f"   ⚠️  Error fetching sentiment: {e}")
+            print("   Skipping sentiment features.")
+            return df
+    
+    # Normalize timestamps to dates (remove time component)
+    # Critical because Fear & Greed uses 08:00 UTC, Yahoo uses 00:00 UTC
+    print("\n🔧 Merging sentiment data with price data...")
+    df.index = df.index.normalize()
+    sentiment_df.index = sentiment_df.index.normalize()
+    
+    # NO SHIFT NEEDED: Fear & Greed updates at 08:00 UTC, we predict at 18:00 UTC
+    # So when we use today's sentiment to predict tomorrow's close, it's valid!
+    
+    # Merge on date (left join keeps all price rows)
+    df = df.merge(
+        sentiment_df[['fear_greed_value', 'fear_greed_class']], 
+        left_index=True, 
+        right_index=True, 
+        how='left'
+    )
+    
+    # Check for missing values
+    missing_count = df['fear_greed_value'].isna().sum()
+    if missing_count > 0:
+        print(f"   ⚠️  {missing_count} rows missing sentiment data")
+        # Back-fill for older dates (sentiment data starts from specific date)
+        df['fear_greed_value'] = df['fear_greed_value'].bfill()
+        print(f"   ✓ Filled missing values using back-fill")
+    
+    # Drop classification column (text, not useful for ML)
+    if 'fear_greed_class' in df.columns:
+        df.drop(columns=['fear_greed_class'], inplace=True)
+    
+    print("\n🎯 Engineering sentiment features...")
+    
+    # Feature 1: Fear & Greed change (day-over-day momentum)
+    df['fear_greed_change_1d'] = df['fear_greed_value'].diff(1)
+    # Fill first NaN with 0 (no change on first day)
+    df['fear_greed_change_1d'] = df['fear_greed_change_1d'].fillna(0)
+    
+    # Feature 2: Fear & Greed 7-day moving average (trend)
+    df['fear_greed_ma_7d'] = df['fear_greed_value'].rolling(window=7, min_periods=1).mean()
+    # min_periods=1 means use available data even if less than 7 days
+    
+    sentiment_features = ['fear_greed_value', 'fear_greed_change_1d', 'fear_greed_ma_7d']
+    
+    print(f"\n✓ Added {len(sentiment_features)} sentiment features:")
+    for feature in sentiment_features:
+        non_null = df[feature].notna().sum()
+        print(f"   • {feature:<25s} ({non_null}/{len(df)} non-null)")
+    
+    print(f"\n📊 Sentiment Feature Statistics:")
+    print(f"   Fear & Greed value range: {df['fear_greed_value'].min():.0f} - {df['fear_greed_value'].max():.0f}")
+    print(f"   Current value: {df['fear_greed_value'].iloc[-1]:.0f}")
+    print(f"   Average: {df['fear_greed_value'].mean():.1f}")
+    
+    print(f"\n✅ Dataset with sentiment: {original_shape} → {df.shape}")
+    print(f"   Added columns: {df.shape[1] - original_shape[1]}")
+    
     return df
 
 
@@ -424,14 +563,14 @@ if __name__ == "__main__":
 
     except FileNotFoundError:
         try:
-            # Fallback to Binance data
+            # Fallback to Cryptocompare data
             df = pd.read_csv(
-                'data/raw/btc_binance_15min.csv',
+                'data/raw/btc_cryptocompare_15min.csv',
                 index_col='timestamp',
                 parse_dates=True
             )
-            print(f"   ✓ Loaded: data/raw/btc_binance_15min.csv")
-            data_source = "binance_15min"
+            print(f"   ✓ Loaded: data/raw/btc_cryptocompare_15min.csv")
+            data_source = "cryptocompare_15min"
 
         except FileNotFoundError:
             print("\n   ❌ Error: No data files found!")
@@ -446,9 +585,19 @@ if __name__ == "__main__":
     # 2. FEATURE ENGINEERING
     # -------------------------------------------------------------------------
 
-    print("\n🔧 Applying feature engineering...")
+    print("\n🔧 Applying technical feature engineering...")
 
     df_features = engineer_technical_features(df)
+    
+    # -------------------------------------------------------------------------
+    # 2b. ADD SENTIMENT FEATURES (for daily data only)
+    # -------------------------------------------------------------------------
+    
+    if 'daily' in data_source.lower():
+        print("\n🎭 Adding sentiment features (Fear & Greed Index)...")
+        df_features = add_sentiment_features(df_features)
+    else:
+        print("\n   ℹ️  Skipping sentiment features (only for daily data)")
 
     # -------------------------------------------------------------------------
     # 3. SAVE RESULTS
@@ -524,24 +673,17 @@ if __name__ == "__main__":
     # 6. RECOMMENDATIONS
     # -------------------------------------------------------------------------
 
-    print("\n" + "=" * 70)
-    print("  NEXT STEPS")
-    print("=" * 70)
-
     print("\n💡 Your feature-engineered data is ready!")
     print("\n   1. Load the features:")
     print(f"      df = pd.read_csv('{output_file}', index_col='timestamp', parse_dates=True)")
-    print("\n   2. Merge with sentiment data:")
-    print("      fng = pd.read_csv('data/raw/fear_greed_index.csv', ...)")
-    print("      df = df.join(fng, how='left')")
-    print("\n   3. Normalize features:")
+    print("\n   2. Normalize features:")
     print("      from sklearn.preprocessing import StandardScaler")
     print("      scaler = StandardScaler()")
     print("      X_scaled = scaler.fit_transform(df)")
-    print("\n   4. Create sequences for LSTM:")
+    print("\n   3. Create sequences for LSTM:")
     print("      from utils.preprocessing import DataPreprocessor")
     print("      X, y = preprocessor.create_sequences(data, sequence_length=60)")
-    print("\n   5. Build your model!")
+    print("\n   4. Build your model!")
 
     print("\n" + "=" * 70)
     print("  FEATURE ENGINEERING COMPLETE! ✅")

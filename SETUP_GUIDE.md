@@ -125,7 +125,7 @@ git push origin main
         ┌─────────────────┼─────────────────┐
         │                 │                 │
    Weekly Model      Daily Pred        Intraday Pred
-   Training          Generation        (Every 15 min)
+   Training          Generation        (Every 1 hour)
    (Sundays 2AM)     (Daily 6PM)      
         │                 │                 │
         └─────────────────┴─────────────────┘
@@ -155,7 +155,7 @@ git push origin main
 
 **Training (Weekly - Sundays 2AM UTC):**
 1. GitHub Actions triggers `train_models_weekly.yml`
-2. Fetches latest data from Yahoo Finance, CoinGecko, Binance
+2. Fetches latest data from Yahoo Finance, CoinGecko, Cryptocompare
 3. Trains 9 XGBoost models (~15-20 minutes)
 4. Commits models to `models/saved_models/`
 
@@ -166,10 +166,10 @@ git push origin main
    - Generates 1d, 3d, 7d predictions (~20 seconds)
    - Commits `daily_predictions.csv`
 
-2. **Intraday (Every 15 minutes):** `predict_intraday.yml` runs
-   - Loads pre-trained hourly and 15-min models
+2. **Intraday (Every 1 hour):** `predict_intraday.yml` runs
+   - Loads pre-trained hourly models
    - Generates all intraday predictions (~40 seconds)
-   - Commits both CSVs
+   - Commits CSVs
 
 **Flask Webapp (PythonAnywhere):**
 1. User visits website
@@ -184,7 +184,7 @@ git push origin main
 |-----------|------|-------|
 | GitHub Actions | **$0/month** | Academic license = unlimited minutes |
 | PythonAnywhere | **$0/month** | Free tier (500 MB storage, always-on webapp) |
-| Data Sources | **$0/month** | All APIs are free (Yahoo, CoinGecko, Binance) |
+| Data Sources | **$0/month** | All APIs are free (Yahoo, CoinGecko, Cryptocompare) |
 | Domain | **$0/month** | Use PythonAnywhere subdomain (yourname.pythonanywhere.com) |
 | **Total** | **$0/month** | 🎉 Completely free! |
 
@@ -288,21 +288,21 @@ on:
 4. Commits `daily_predictions.csv`
 
 #### 3. Intraday Predictions (`predict_intraday.yml`)
-**Schedule:** Every 15 minutes  
+**Schedule:** Every 1 hour
 **Duration:** ~40 seconds  
 **Purpose:** Generate hourly and 15-minute predictions
 
 ```yaml
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
+    - cron: '0 * * * *'  # Every 1 hour
   workflow_dispatch:         # Manual trigger
 ```
 
 **What it does:**
 1. Loads pre-trained hourly and 15-min models
 2. Fetches CoinGecko hourly data
-3. Fetches Binance 15-minute data
+3. Fetches Cryptocompare 15-minute data
 4. Generates both prediction files
 5. Commits both CSVs
 
@@ -348,7 +348,7 @@ GitHub automatically sends emails when workflows fail. Check your GitHub notific
 **Solution:** 15-20 minutes is normal. GitHub free tier allows up to 6 hours per job.
 
 **Issue:** Intraday workflow runs too frequently  
-**Solution:** Cron `*/15` means every 15 minutes. With academic license, this is unlimited and free.
+**Solution:** Cron `0` means every 1 hour. With academic license, this is unlimited and free.
 
 ---
 
@@ -487,7 +487,7 @@ if __name__ == '__main__':
 **The Magic: No Git Operations Needed! 🎉**
 
 1. **GitHub Actions** automatically:
-   - Updates predictions every 15 minutes
+   - Updates predictions every 1 hour
    - Commits CSVs to your repository
 
 2. **PythonAnywhere webapp** automatically:
@@ -550,13 +550,13 @@ python utils/train_15min_models.py
 **Solution:** Check internet connection. APIs used:
 - Yahoo Finance: Free, no API key needed
 - CoinGecko: Free tier, rate limit 10-50 calls/min
-- Binance: Free, no API key needed
+- Cryptocompare: Free, no API key needed
 
 ### GitHub Actions Issues
 
 **Problem:** Workflow doesn't trigger on schedule  
 **Solution:** 
-- Wait up to 15 minutes after push for first trigger
+- Wait up to 1 hour after push for first trigger
 - Repository must have activity in last 60 days
 - Manually trigger once to "wake up" scheduled workflows
 
@@ -643,8 +643,8 @@ This checks:
 
 **2. Show Your Solution (1 minute)**
 - "Built ML system with 9 XGBoost models"
-- "Predicts short-term (15 min) to long-term (7 days)"
-- "Updates automatically every 15 minutes"
+- "Predicts short-term (1 hour) to long-term (7 days)"
+- "Updates automatically every 1 hour"
 
 **3. Live Demo (2 minutes)**
 - Open your website: `https://yourname.pythonanywhere.com/live`
@@ -654,7 +654,7 @@ This checks:
 
 **4. Show the Architecture (1 minute)**
 - "Fully automated with GitHub Actions"
-- "Trains weekly, predicts every 15 minutes"
+- "Trains weekly, predicts every 1 hour"
 - "Deployed for free on PythonAnywhere"
 - Show GitHub Actions tab running
 

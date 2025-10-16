@@ -1,16 +1,16 @@
-name: Update Hourly and 15-Min Predictions
+name: Update Hourly Predictions
 
 on:
   schedule:
-    # Run every 15 minutes
-    - cron: '*/15 * * * *'
+    # Run every 1 hour
+    - cron: '0 * * * *'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
   contents: write  # Allow workflow to push commits
 
 jobs:
-  predict-intraday:
+  predict-hourly:
     runs-on: ubuntu-latest
     
     steps:
@@ -35,14 +35,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Generate Hourly and 15-Min Predictions
+    - name: Generate Hourly Predictions
       run: |
-        echo "Generating intraday predictions..."
-        python utils/predict_hourly_and_15min.py
+        echo "Generating hourly predictions..."
+        python utils/predict_hourly.py
         
     - name: Commit and push predictions
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git add data/predictions/
-        git diff --quiet && git diff --staged --quiet || (git commit -m "⚡ Intraday predictions - $(date +'%Y-%m-%d %H:%M UTC')" && git push)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "⚡ Hourly predictions - $(date +'%Y-%m-%d %H:%M UTC')" && git push)

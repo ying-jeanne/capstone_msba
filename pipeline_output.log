@@ -1,0 +1,531 @@
+
+[94m[1m[STEP 1] FETCH LATEST DATA[0m
+   This will download the latest Bitcoin price data from: Yahoo Finance and Cryptocompare.
+[92m✓ Yahoo: 732 samples (2023-10-15 00:00:00 to 2025-10-15 00:00:00)[0m
+   Saved to: data/raw/btc_yahoo_2y_daily.csv
+[92m✓ Cryptocompare_1h: 8761 samples (2024-10-15 18:00:00 to 2025-10-15 18:00:00)[0m
+   Saved to: data/raw/btc_cryptocompare_365d_1hour.csv
+[92m✓ Data fetching completed: 2/2 sources successful[0m
+
+[94m[1m[STEP 2] FEATURE ENGINEERING[0m
+   Creating 55+ technical indicators + sentiment from raw OHLCV data:
+   - Trend indicators (SMA, EMA, MACD, ADX)
+   - Momentum indicators (RSI, Stochastic, ROC)
+   - Volatility indicators (Bollinger Bands, ATR)
+   - Statistical features (lags, rolling stats)
+   - Sentiment features (Fear & Greed Index) - DAILY ONLY
+
+   Running: Create 55 technical indicators
+   Script: utils/feature_engineering.py
+======================================================================
+  BITCOIN FEATURE ENGINEERING - TEST RUN
+======================================================================
+
+📂 Loading data...
+   ✓ Loaded: data/raw/btc_yahoo_2y_daily.csv
+
+   Original data shape: (732, 5)
+   Date range: 2023-10-15 00:00:00 to 2025-10-15 00:00:00
+   Columns: ['open', 'high', 'low', 'close', 'volume']
+
+🔧 Applying technical feature engineering...
+
+======================================================================
+  FEATURE ENGINEERING - CREATING 50+ FEATURES
+======================================================================
+
+📊 Input data shape: (732, 5)
+   Columns: ['open', 'high', 'low', 'close', 'volume']
+
+1️⃣  Calculating Technical Indicators...
+   • RSI (Relative Strength Index) - adapting to dataset size (732 rows)
+   • MACD (Trend & Momentum) - 3 components
+   • EMA (Exponential Moving Averages)
+   • Bollinger Bands - 4 components
+   • ATR (Average True Range) - Volatility measure
+   • Stochastic Oscillator - 2 components
+   • Volume Indicators - 3 components
+   ✓ Added 20 technical indicators
+
+ Creating Lag Features (Historical Values)...
+   • Price lags (1-7 periods back)
+   • Volume lags (1-3 periods back)
+   ✓ Added 8 lag features
+
+3️⃣  Calculating Rolling Statistics...
+   • Rolling means (moving averages)
+   • Rolling standard deviations (volatility)
+   • Rolling min/max (support/resistance)
+   ✓ Added 7 rolling statistics
+
+4️⃣  Calculating Returns and Momentum...
+   • Return calculations
+   • Momentum features
+   ✓ Added 5 return/momentum features
+
+5️⃣  Creating Time-based Features...
+   • Hour features (cyclical encoding)
+   • Day of week features (cyclical encoding)
+   ✓ Added 4 time-based features
+
+6️⃣  Creating Interaction Features...
+   • Price-Volume interaction
+   • RSI-MACD interaction
+   ✓ Added 2 interaction features
+
+7️⃣  Creating Additional Features...
+   ✓ Added 4 additional features
+
+8️⃣  Handling NaN Values...
+
+   Before dropna: 732 rows
+
+   Columns with NaN values:
+      rsi_10: 9 NaN values
+      rsi_14: 13 NaN values
+      rsi_30: 29 NaN values
+      rsi_200: 199 NaN values
+      macd: 25 NaN values
+
+   After dropna: 533 rows
+   Rows dropped: 199 (27.2%)
+
+   ℹ️  Dropped rows are from the start of dataset
+      (due to rolling windows and lag features)
+
+======================================================================
+  FEATURE ENGINEERING COMPLETE
+======================================================================
+
+📊 Feature Summary:
+   Original features: 5
+   New features created: 50
+   Total features: 55
+
+📋 Feature Categories:
+   • Technical Indicators: ~20
+   • Lag Features: 8
+   • Rolling Statistics: 7
+   • Returns & Momentum: 5
+   • Time-based Features: 4
+   • Interaction Features: 2
+   • Additional Features: 4
+
+✅ Final dataset shape: (533, 55)
+   Rows: 533
+   Columns: 55
+
+🎭 Adding sentiment features (Fear & Greed Index)...
+
+======================================================================
+  ADDING SENTIMENT FEATURES
+======================================================================
+
+📊 Fetching Fear & Greed Index from API...
+✓ SentimentFetcher initialized (using FREE APIs)
+
+📊 Fetching Fear & Greed Index...
+   Source: alternative.me API
+   Requesting: 730 days (max 1000 per request)
+   Fetching 730 records...
+   ✓ Received 730 data points
+
+   📈 Fear & Greed Index Summary:
+      Samples: 730
+      Date range: 2023-10-16 08:00:00 to 2025-10-15 08:00:00
+      Value range: 10 - 94
+      Current value: 34 (Fear)
+      Average: 60.7
+
+   Distribution:
+      Greed: 390 days (53.4%)
+      Fear: 116 days (15.9%)
+      Neutral: 104 days (14.2%)
+      Extreme Greed: 96 days (13.2%)
+      Extreme Fear: 24 days (3.3%)
+   ✓ Fetched 730 days of sentiment data
+
+🔧 Merging sentiment data with price data...
+   ⚠️  1 rows missing sentiment data
+   ✓ Filled missing values using back-fill
+
+🎯 Engineering sentiment features...
+
+✓ Added 3 sentiment features:
+   • fear_greed_value          (533/533 non-null)
+   • fear_greed_change_1d      (533/533 non-null)
+   • fear_greed_ma_7d          (533/533 non-null)
+
+📊 Sentiment Feature Statistics:
+   Fear & Greed value range: 10 - 94
+   Current value: 34
+   Average: 57.2
+
+✅ Dataset with sentiment: (533, 55) → (533, 58)
+   Added columns: 3
+
+💾 Saving results...
+   ✓ Saved to: data/processed/btc_yahoo_2y_daily_features.csv
+   File size: 487.10 KB
+
+📊 Sample of Engineered Features:
+======================================================================
+                   close     rsi_14  ...   returns  momentum_10
+timestamp                            ...                       
+2024-05-01  58254.011719  33.455913  ... -0.039297 -6672.632812
+2024-05-02  59123.433594  36.404700  ...  0.014925 -7714.246094
+2024-05-03  62889.835938  47.299713  ...  0.063704 -3517.437500
+2024-05-04  63891.472656  49.764512  ...  0.015927  -385.425781
+2024-05-05  64031.132812  50.114850  ...  0.002186  -450.574219
+
+[5 rows x 8 columns]
+
+======================================================================
+  Feature List (First 20):
+======================================================================
+    1. open
+    2. high
+    3. low
+    4. close
+    5. volume
+    6. rsi_10
+    7. rsi_14
+    8. rsi_30
+    9. rsi_200
+   10. macd
+   11. macd_signal
+   12. macd_diff
+   13. ema_10
+   14. ema_30
+   15. ema_200
+   16. bb_high
+   17. bb_low
+   18. bb_mid
+   19. bb_width
+   20. atr_14
+   ... and 38 more features
+
+======================================================================
+  FEATURE STATISTICS
+======================================================================
+
+✓ NaN values remaining: 0
+✓ Infinite values: 0
+
+📈 Feature Value Ranges (sample):
+   rsi_10                        : [17.75, 88.30]
+   rsi_14                        : [24.68, 84.36]
+   rsi_30                        : [37.35, 75.33]
+   rsi_200                       : [50.15, 59.34]
+   macd                          : [-3536.84, 7049.22]
+
+======================================================================
+  NEXT STEPS
+======================================================================
+
+💡 Your feature-engineered data is ready!
+
+   1. Load the features:
+      df = pd.read_csv('data/processed/btc_yahoo_2y_daily_features.csv', index_col='timestamp', parse_dates=True)
+
+   2. Merge with sentiment data:
+      fng = pd.read_csv('data/raw/fear_greed_index.csv', ...)
+      df = df.join(fng, how='left')
+
+   3. Normalize features:
+      from sklearn.preprocessing import StandardScaler
+      scaler = StandardScaler()
+      X_scaled = scaler.fit_transform(df)
+
+   4. Create sequences for LSTM:
+      from utils.preprocessing import DataPreprocessor
+      X, y = preprocessor.create_sequences(data, sequence_length=60)
+
+   5. Build your model!
+
+======================================================================
+  FEATURE ENGINEERING COMPLETE! ✅
+======================================================================
+
+[92m✓ Completed: Create 55 technical indicators[0m
+
+[94m[1m[STEP 3] DATA PREPARATION (RETURN-BASED)[0m
+   Preparing data with return-based targets:
+   - Creating return targets (for training)
+   - Creating price targets (for evaluation)
+   - Chronological train/val/test split (70/15/15)
+   - RobustScaler normalization
+   - Multi-horizon targets (1, 3, 7 days)
+
+   Running: Prepare return-based targets
+   Script: utils/data_preparation_returns.py
+
+======================================================================
+  DATA PREPARATION - RETURN-BASED PREDICTION (BIAS FIX)
+======================================================================
+
+📂 Loading feature-engineered data...
+   ✓ Loaded: (533, 58)
+   ✓ Date range: 2024-05-01 00:00:00 to 2025-10-15 00:00:00
+
+======================================================================
+  CREATING RETURN-BASED TARGETS (FIXES BIAS)
+======================================================================
+
+📊 Horizons: [1, 3, 7] days
+   Original samples: 533
+
+   1d ahead:
+      Return target created: target_1d_return
+      Price target created: target_1d_price (evaluation only)
+      Return stats: mean=0.15%, std=2.42%
+      Return range: [-8.68%, 12.14%]
+
+   3d ahead:
+      Return target created: target_3d_return
+      Price target created: target_3d_price (evaluation only)
+      Return stats: mean=0.44%, std=4.08%
+      Return range: [-12.39%, 15.88%]
+
+   7d ahead:
+      Return target created: target_7d_return
+      Price target created: target_7d_price (evaluation only)
+      Return stats: mean=1.00%, std=6.03%
+      Return range: [-19.20%, 30.81%]
+
+⚠️  Dropped 7 rows with NaN targets (last 7 rows)
+   Final samples: 526
+
+📊 Data Split (Chronological):
+   Total samples: 526
+   Train: 341 (64.8%)
+   Val:   79 (15.0%)
+   Test:  106 (20.2%)
+
+   Date ranges:
+   Train: 2024-05-01 00:00:00 to 2025-04-06 00:00:00
+   Val:   2025-04-07 00:00:00 to 2025-06-24 00:00:00
+   Test:  2025-06-25 00:00:00 to 2025-10-08 00:00:00
+
+📊 Price Range Analysis:
+   Train: $53,949 - $106,146
+   Val:   $76,272 - $111,673
+   Test:  $105,698 - $124,753
+
+⚠️  TEST MAX > TRAIN MAX!
+   This is why old method failed:
+   - Training max: $106,146
+   - Test max: $124,753
+   - Gap: $18,606
+   Tree models cannot predict above training max!
+   ✅ Return-based prediction solves this!
+
+======================================================================
+  PREPARING FEATURES & TARGETS (RETURN-BASED)
+======================================================================
+
+📊 Features: 54
+   Sample features: ['volume', 'rsi_10', 'rsi_14', 'rsi_30', 'rsi_200', 'macd', 'macd_signal', 'macd_diff', 'ema_10', 'ema_30']
+
+📊 Data shapes:
+   X_train: (341, 54)
+   y_train_returns: (341, 3) (for training)
+   y_train_prices: (341, 3) (for evaluation)
+   train_current_prices: (341,)
+
+🔄 Scaling features...
+   ⚠️  CRITICAL: Fitting scaler on TRAINING data ONLY!
+   ✓ Features scaled using training statistics
+
+✅ Validation:
+   ✓ No NaN values
+   ✓ No infinite values
+
+======================================================================
+  SAVING PREPARED DATA
+======================================================================
+
+✓ Saved features: X_train.npy, X_val.npy, X_test.npy
+✓ Saved return targets: y_*_returns.csv (FOR TRAINING)
+✓ Saved price targets: y_*_prices.csv (FOR EVALUATION)
+✓ Saved current prices: *_current_prices.csv
+✓ Saved metadata: scaler.pkl, feature_cols.pkl, horizons.pkl
+
+======================================================================
+  ✅ DATA PREPARATION COMPLETE (RETURN-BASED)
+======================================================================
+
+📊 Summary:
+   Features: 54
+   Horizons: [1, 3, 7] days
+   Train: 341 samples
+   Val: 79 samples
+   Test: 106 samples
+
+💡 Next Steps:
+   1. Train models using y_*_returns.csv (NOT y_*_prices.csv)
+   2. Convert predictions to prices using convert_returns_to_prices()
+   3. Evaluate using y_*_prices.csv and calculate MAPE
+   4. Expect: Positive R², <8% MAPE, mix of BUY/SELL signals
+======================================================================
+
+
+[92m✓ Completed: Prepare return-based targets[0m
+
+[94m[1m[STEP 4] TRAIN XGBOOST (BEST MODEL)[0m
+   Training XGBoost with return-based prediction:
+   - Expected MAPE: ~1.16% (1-day)
+   - Expected R²: ~0.865 (1-day)
+   - Training 3 models: 1-day, 3-day, 7-day
+
+   Running: Train XGBoost models
+   Script: models/xgboost_returns.py
+[91m✗ Script failed with return code 2[0m
+   Error: /usr/local/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/ying-jeanne/Workspace/capstone_bitcoin/models/xgboost_returns.py': [Errno 2] No such file or directory
+
+[93m⚠ XGBoost training failed, but continuing...[0m
+
+[94m[1m[STEP 5] TRAIN RANDOM FOREST & GRADIENT BOOSTING[0m
+   Training additional models for comparison:
+   - Random Forest (expected MAPE: ~1.89%)
+   - Gradient Boosting (expected MAPE: ~3.14%)
+   - 3 models each: 1-day, 3-day, 7-day
+
+   Running: Train RF & GB models
+   Script: models/sklearn_models_returns.py
+[91m✗ Script failed with return code 2[0m
+   Error: /usr/local/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/ying-jeanne/Workspace/capstone_bitcoin/models/sklearn_models_returns.py': [Errno 2] No such file or directory
+
+[93m⚠ RF & GB training failed, but continuing...[0m
+
+[94m[1m[STEP 6] COMPARE ALL MODELS[0m
+   Generating comprehensive comparison reports:
+   - Performance metrics (MAPE, R², MAE, Directional Accuracy)
+   - Rankings by metric
+   - Visualizations
+
+   Running: Compare all models
+   Script: utils/compare_all_models.py
+
+================================================================================
+  COMPREHENSIVE MODEL COMPARISON - RETURN-BASED PREDICTIONS
+================================================================================
+
+📂 Loading results from all models...
+
+[91m✗ Script failed with return code 1[0m
+   Error: Traceback (most recent call last):
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/utils/compare_all_models.py", line 268, in <module>
+    all_results = load_all_results()
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/utils/compare_all_models.py", line 25, in load_all_results
+    xgb_results = pd.read_csv(results_dir / 'xgboost_returns_summary.csv')
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ~~~~~~~~~~^
+        f,
+        ^^
+    ...<6 lines>...
+        storage_options=self.options.get("storage_options", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+        handle,
+    ...<3 lines>...
+        newline="",
+    )
+FileNotFoundError: [Errno 2] No such file or directory: 'results/xgboost_returns_summary.csv'
+
+[93m⚠ Model comparison failed, but continuing...[0m
+
+[94m[1m[STEP 7] DIAGNOSE BIAS[0m
+   Verifying systematic bias has been eliminated:
+   - Before/after comparison
+   - Success criteria verification
+   - Diagnostic visualizations
+
+   Running: Verify bias elimination
+   Script: utils/diagnose_bias.py
+
+======================================================================
+  DIAGNOSTIC - SYSTEMATIC BIAS ELIMINATION VERIFICATION
+======================================================================
+
+======================================================================
+  BIAS FIX - BEFORE vs AFTER COMPARISON
+======================================================================
+
+[91m✗ Script failed with return code 1[0m
+   Error: Traceback (most recent call last):
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/utils/diagnose_bias.py", line 294, in <module>
+    create_comparison_table()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/utils/diagnose_bias.py", line 63, in create_comparison_table
+    new_results = load_new_results()
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/utils/diagnose_bias.py", line 52, in load_new_results
+    new_summary = pd.read_csv(results_dir / 'xgboost_returns_summary.csv')
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ~~~~~~~~~~^
+        f,
+        ^^
+    ...<6 lines>...
+        storage_options=self.options.get("storage_options", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ying-jeanne/Workspace/capstone_bitcoin/venv/lib/python3.13/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+        handle,
+    ...<3 lines>...
+        newline="",
+    )
+FileNotFoundError: [Errno 2] No such file or directory: 'results/xgboost_returns_summary.csv'
+
+[93m⚠ Bias diagnosis failed, but continuing...[0m
+
+[95m[1m======================================================================
+  PIPELINE EXECUTION SUMMARY
+======================================================================[0m
+
+[1mCompleted Steps:[0m
+   [92m✓[0m Data Fetching
+   [92m✓[0m Feature Engineering
+   [92m✓[0m Data Preparation
+
+[1mSuccess Rate: 43% (3/7 steps)[0m
+
+[91m[1m❌ PIPELINE FAILED - Multiple critical steps failed[0m
+
+[1mResults Location:[0m
+   📊 Performance Metrics: [96mresults/all_models_returns_combined.csv[0m
+   📈 Visualizations: [96mresults/all_models_returns_comparison.png[0m
+   🔍 Bias Analysis: [96mresults/bias_fix_diagnostic.png[0m
+   🤖 Trained Models: [96mmodels/saved_models/*_returns_*.json/.pkl[0m
+
+[1mPipeline End Time: 2025-10-16 02:54:45[0m
+
+======================================================================
+
+[1mNEXT STEPS:[0m
+   1. View results: [96mopen results/[0m
+   2. Check models: [96mls -lh models/saved_models/[0m
+   3. Read documentation: [96mcat README.md[0m
+
+======================================================================
+

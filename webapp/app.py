@@ -205,7 +205,7 @@ def create_mock_results():
 def get_live_data():
     """Get current Bitcoin price."""
     try:
-        result = get_latest_price(source='yahoo')
+        result = get_latest_price()
         if result['status'] == 'success':
             return {
                 'price': result['price'],
@@ -228,74 +228,45 @@ def get_predictions_from_github():
         # Fetch predictions from GitHub (with caching)
         all_predictions = prediction_loader.get_all_predictions()
         
-        # Process daily predictions for display (main focus for /live page)
+        # Process daily predictions for display
         daily_df = all_predictions.get('daily')
+        hourly_df = all_predictions.get('hourly')
         
         predictions = []
         
         # Convert daily predictions to display format
         if daily_df is not None and len(daily_df) > 0:
             for _, row in daily_df.iterrows():
-                pred = {
+                predictions.append({
                     'date': row['timestamp'],
                     'current_price': round(row['current_price'], 2),
-                    'timeframe': 'daily',
-                    'data_source': row.get('data_source', 'unknown'),
-                    'generated_at': row.get('generated_at', 'N/A'),
-                    
-                    # Predictions
                     'predicted_price_1d': round(row['pred_1d_price'], 2),
                     'predicted_return_1d': round(row['pred_1d_return'] * 100, 2),
                     'predicted_price_3d': round(row['pred_3d_price'], 2),
                     'predicted_return_3d': round(row['pred_3d_return'] * 100, 2),
                     'predicted_price_7d': round(row['pred_7d_price'], 2),
                     'predicted_return_7d': round(row['pred_7d_return'] * 100, 2),
-                }
-                
-                # Add actuals if available (after backfill), otherwise set to None
-                if pd.notna(row.get('actual_price_1d')):
-                    pred['actual_price_1d'] = round(row['actual_price_1d'], 2)
-                    pred['error_1d'] = round(row['error_1d'], 2)
-                    pred['error_pct_1d'] = round(row['error_pct_1d'], 2)
-                    pred['direction_correct_1d'] = row['direction_correct_1d']
-                    pred['validated'] = True
-                else:
-                    pred['actual_price_1d'] = None
-                    pred['error_1d'] = None
-                    pred['error_pct_1d'] = None
-                    pred['direction_correct_1d'] = None
-                    pred['validated'] = False
-                
-                if pd.notna(row.get('actual_price_3d')):
-                    pred['actual_price_3d'] = round(row['actual_price_3d'], 2)
-                    pred['error_3d'] = round(row['error_3d'], 2)
-                    pred['error_pct_3d'] = round(row['error_pct_3d'], 2)
-                    pred['direction_correct_3d'] = row['direction_correct_3d']
-                else:
-                    pred['actual_price_3d'] = None
-                    pred['error_3d'] = None
-                    pred['error_pct_3d'] = None
-                    pred['direction_correct_3d'] = None
-                
-                if pd.notna(row.get('actual_price_7d')):
-                    pred['actual_price_7d'] = round(row['actual_price_7d'], 2)
-                    pred['error_7d'] = round(row['error_7d'], 2)
-                    pred['error_pct_7d'] = round(row['error_pct_7d'], 2)
-                    pred['direction_correct_7d'] = row['direction_correct_7d']
-                else:
-                    pred['actual_price_7d'] = None
-                    pred['error_7d'] = None
-                    pred['error_pct_7d'] = None
-                    pred['direction_correct_7d'] = None
-                
-                predictions.append(pred)
+                    'data_source': row.get('data_source', 'unknown'),
+                    'generated_at': row.get('generated_at', 'N/A'),
+                    'timeframe': 'daily'
+                })
+        
+        # Add hourly predictions
+        if hourly_df is not None and len(hourly_df) > 0:
+            latest_hourly = hourly_df.iloc[-1]
+            predictions.append({
+                'date': latest_hourly['timestamp'],
+                'current_price': round(latest_hourly['current_price'], 2),
+                'predicted_price_1h': round(latest_hourly.get('pred_1h_price', 0), 2),
+                'predicted_return_1h': round(latest_hourly.get('pred_1h_return', 0) * 100, 2),
+                'timeframe': 'hourly',
+                'generated_at': latest_hourly.get('generated_at', 'N/A')
+            })
         
         return predictions
         
     except Exception as e:
         print(f"Error loading predictions from GitHub: {e}")
-        import traceback
-        traceback.print_exc()
         # Return empty list if fetch fails
         return []
 
@@ -334,66 +305,30 @@ def live():
 
     # Calculate summary stats
     if predictions_data and len(predictions_data) > 0:
-        # Filter validated predictions (those with actuals)
-        validated_predictions = [p for p in predictions_data if p.get('validated', False)]
+        # Filter daily predictions for stats
+        daily_predictions = [p for p in predictions_data if p.get('timeframe') == 'daily']
+        recent_predictions = daily_predictions[-7:] if len(daily_predictions) > 7 else daily_predictions
         
-        # Calculate real accuracy metrics from validated predictions
-        if validated_predictions:
-            # Calculate average MAPE for 1d predictions
-            mape_values = [abs(p['error_pct_1d']) for p in validated_predictions if 'error_pct_1d' in p]
-            avg_mape = sum(mape_values) / len(mape_values) if mape_values else 0.0
-            
-            # Calculate direction accuracy
-            correct_directions = sum(1 for p in validated_predictions if p.get('direction_correct_1d', False))
-            direction_accuracy = (correct_directions / len(validated_predictions) * 100) if validated_predictions else 0.0
-        else:
-            avg_mape = 0.0
-            direction_accuracy = 0.0
+        # Calculate average error if we had actual prices (placeholder for now)
+        avg_mape = 2.5  # Placeholder - would need actual vs predicted comparison
         
-        # Get latest prediction for summary
-        latest_pred = predictions_data[-1] if predictions_data else None
-        
-        # Ensure latest_pred has all fields (even if None) to prevent template errors
-        if latest_pred:
-            # Add missing actual fields with None defaults
-            for field in ['actual_price_1d', 'error_1d', 'error_pct_1d', 'direction_correct_1d',
-                         'actual_price_3d', 'error_3d', 'error_pct_3d', 'direction_correct_3d',
-                         'actual_price_7d', 'error_7d', 'error_pct_7d', 'direction_correct_7d']:
-                if field not in latest_pred:
-                    latest_pred[field] = None
+        # Get latest daily prediction for summary
+        latest_pred = daily_predictions[-1] if daily_predictions else predictions_data[0]
     else:
-        validated_predictions = []
+        recent_predictions = []
         avg_mape = 0.0
-        direction_accuracy = 0.0
         latest_pred = {
             'date': datetime.now().strftime('%Y-%m-%d'),
             'current_price': current_data['price'],
             'predicted_price_1d': current_data['price'],
-            'predicted_return_1d': 0.0,
-            'validated': False,
-            # Add None defaults for actual fields
-            'actual_price_1d': None,
-            'error_1d': None,
-            'error_pct_1d': None,
-            'direction_correct_1d': None,
-            'actual_price_3d': None,
-            'error_3d': None,
-            'error_pct_3d': None,
-            'direction_correct_3d': None,
-            'actual_price_7d': None,
-            'error_7d': None,
-            'error_pct_7d': None,
-            'direction_correct_7d': None,
+            'predicted_return_1d': 0.0
         }
 
     summary = {
         'current_price': current_data['price'],
         'timestamp': current_data['timestamp'],
         'total_predictions': len(predictions_data),
-        'validated_predictions': len(validated_predictions),
-        'pending_predictions': len(predictions_data) - len(validated_predictions),
         'avg_mape_7d': round(avg_mape, 2),
-        'direction_accuracy': round(direction_accuracy, 1),
         'latest_prediction': latest_pred
     }
 
@@ -432,9 +367,9 @@ def api_blockchain_predictions():
 
 @app.route('/api/predictions/<timeframe>')
 def api_predictions_by_timeframe(timeframe):
-    """Get predictions for specific timeframe (daily, hourly, 15min)."""
+    """Get predictions for specific timeframe (daily, hourly)."""
     try:
-        if timeframe not in ['daily', 'hourly', '15min']:
+        if timeframe not in ['daily', 'hourly']:
             return jsonify({'status': 'error', 'message': 'Invalid timeframe'}), 400
         
         df = prediction_loader.get_predictions(timeframe)

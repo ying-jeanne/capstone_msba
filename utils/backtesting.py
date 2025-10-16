@@ -57,7 +57,7 @@ def backtest_strategy(df, signals, initial_capital=10000, costs=None):
     **Transaction Cost Components:**
 
     1. **Commission (0.2% default):**
-       - Exchange fees (Binance: 0.1%, Coinbase: 0.5%)
+       - Exchange fees (Cryptocompare: 0.1%, Coinbase: 0.5%)
        - Network fees for withdrawals
        - Trading platform costs
 

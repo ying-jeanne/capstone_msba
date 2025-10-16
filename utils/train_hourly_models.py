@@ -1,12 +1,14 @@
 """
 Train Hourly Bitcoin Prediction Models
 =======================================
-Trains XGBoost models for hourly predictions (1h, 6h, 24h)
-Uses Binance 1-hour data (60-90 days, ~1440-2160 samples)
+Trains XGBoost models for hourly predictions (1h, 4h, 6h, 12h, 24h)
+Uses Cryptocompare 1-hour data (365 days, ~8760 samples)
 
 Output:
 - models/saved_models/hourly/xgboost_1h.json
+- models/saved_models/hourly/xgboost_4h.json
 - models/saved_models/hourly/xgboost_6h.json
+- models/saved_models/hourly/xgboost_12h.json
 - models/saved_models/hourly/xgboost_24h.json
 - models/saved_models/hourly/scaler_hourly.pkl
 - models/saved_models/hourly/feature_cols_hourly.pkl
@@ -37,7 +39,6 @@ def calculate_metrics(y_true, y_pred):
     directional_acc = np.mean(direction_true == direction_pred) * 100
     
     return {'MAE': mae, 'MAPE': mape, 'R2': r2, 'Directional_Accuracy': directional_acc}
-
 
 def prepare_data_for_horizon(df, horizon_hours=1):
     """Prepare data for specific prediction horizon (in hours)"""
@@ -137,11 +138,11 @@ def main():
     models_dir = Path('models/saved_models/hourly')
     models_dir.mkdir(parents=True, exist_ok=True)
     
-    print("\n[STEP 1] Loading cached Binance 1-hour data...")
-    print("  Note: Using TRUE 1-hour candles from Binance")
+    print("\n[STEP 1] Loading cached Cryptocompare 1-hour data...")
+    print("  Note: Using TRUE 1-hour candles from Cryptocompare")
     print("        Expected: ~8760 hourly candles (365 days × 24 hours)")
 
-    data_path = Path('data/raw/btc_binance_365d_1hour.csv')
+    data_path = Path('data/raw/btc_cryptocompare_365d_1hour.csv')
 
     if not data_path.exists():
         print(f"❌ Error: Data file not found at {data_path}")
@@ -159,13 +160,15 @@ def main():
     print(f"✓ Created {len(df.columns)} features")
     
     # True hourly predictions with 1-hour candles
-    horizons = [1, 6, 24]  # 1 hour, 6 hours, 24 hours ahead
+    horizons = [1, 4, 6, 12, 24]  # Option A: Comprehensive intraday trading
     all_metrics = []
 
     print(f"\n  Prediction horizons:")
-    print(f"    - 1 hour ahead")
-    print(f"    - 6 hours ahead")
-    print(f"    - 24 hours (1 day) ahead")
+    print(f"    - 1 hour ahead (scalping/quick trades)")
+    print(f"    - 4 hours ahead (intraday swing)")
+    print(f"    - 6 hours ahead (quarter-day trend)")
+    print(f"    - 12 hours ahead (half-day trend)")
+    print(f"    - 24 hours ahead (bridge to daily models)")
 
     for horizon in horizons:
         print(f"\n[STEP 3.{horizon}] Training {horizon}-hour model...")

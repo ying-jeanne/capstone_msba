@@ -67,7 +67,7 @@ This project predicts Bitcoin prices using **return-based prediction** to elimin
 
 ```
 1. Data Fetching (utils/data_fetcher.py)
-   ↓ Yahoo Finance (2y), Binance (60d), CoinGecko (60d)
+   ↓ Yahoo Finance (2y), Cryptocompare (60d), CoinGecko (60d)
 
 2. Feature Engineering (utils/feature_engineering.py)
    ↓ 55+ technical indicators (RSI, MACD, EMA, Bollinger Bands, etc.)
@@ -254,7 +254,7 @@ curl http://localhost:5000/api/model-results
 ## 📊 Data Sources
 
 - **Yahoo Finance**: 2 years daily data (most reliable)
-- **Binance**: 60 days 15-minute data (high frequency)
+- **Cryptocompare**: 60 days 15-minute data (high frequency)
 - **CoinGecko**: 60 days hourly data (backup source)
 
 All sources are free, no API keys required!
@@ -394,7 +394,7 @@ python run_full_pipeline.py
 
 **Built for:** Capstone Group Project
 **Technology Stack:** Python, Flask, XGBoost, Chart.js, Solidity, Web3.py
-**Data Sources:** Yahoo Finance, Binance, CoinGecko
+**Data Sources:** Yahoo Finance, Cryptocompare, CoinGecko
 **Infrastructure:** Polygon blockchain (planned)
 
 ## 📝 License & Usage

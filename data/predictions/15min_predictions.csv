@@ -1,2 +1,0 @@
-timestamp,current_price,data_source,timeframe,generated_at,pred_15m_price,pred_15m_return,pred_15m_change_pct,pred_1h_price,pred_1h_return,pred_1h_change_pct,pred_4h_price,pred_4h_return,pred_4h_change_pct
-2025-10-14 16:38:00,112556.55,binance,15min,2025-10-14T16:38:25.450272,112557.66367626787,9.921533e-06,0.0009921533,112558.0527920723,1.3333733e-05,0.0013333732,112560.60217148066,3.601953e-05,0.003601953

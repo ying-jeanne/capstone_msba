@@ -1,8 +1,8 @@
 """
 Crypto Data Fetcher - Fetch Bitcoin price data from free APIs
-Sources: Yahoo Finance (daily), Binance (15-min, hourly)
+Sources: Yahoo Finance (daily), Cryptocompare (15-min, hourly)
 
-Note: Uses direct Binance REST API (no SDK) to avoid IP blocking in GitHub Actions
+Note: Uses direct Cryptocompare REST API (no SDK) to avoid IP blocking in GitHub Actions
 """
 
 import pandas as pd
@@ -14,7 +14,7 @@ import requests
 from pathlib import Path
 
 
-def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/raw', verbose=True):
+def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir='data/raw', verbose=True):
     """
     Fetch Bitcoin data with incremental updates
 
@@ -28,7 +28,7 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
       - Save to cache
 
     Args:
-        source (str): 'yahoo', 'binance' (15-min), or 'binance_1h' (hourly)
+        source (str): 'yahoo', or 'cryptocompare_1h' (hourly)
         days (int): Days to fetch if no cache exists (default: 365)
         cache_dir (str): Directory for cached files (default: 'data/raw')
         verbose (bool): Print status messages (default: True)
@@ -38,10 +38,10 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
 
     Example:
         # First call: fetches 365 days
-        df = get_bitcoin_data_incremental('binance_1h', days=365)
+        df = get_bitcoin_data_incremental('cryptocompare_1h', days=365)
 
         # Later calls: only fetches new data since last timestamp
-        df = get_bitcoin_data_incremental('binance_1h', days=365)
+        df = get_bitcoin_data_incremental('cryptocompare_1h', days=365)
     """
     import os
 
@@ -51,10 +51,8 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
 
     if source == 'yahoo':
         cache_file = cache_path / 'btc_yahoo_2y_daily.csv'
-    elif source == 'binance':
-        cache_file = cache_path / 'btc_binance_60d_15min.csv'
-    elif source == 'binance_1h':
-        cache_file = cache_path / 'btc_binance_365d_1hour.csv'
+    elif source == 'cryptocompare_1h':
+        cache_file = cache_path / 'btc_cryptocompare_365d_1hour.csv'
     else:
         raise ValueError(f"Invalid source: {source}")
 
@@ -97,10 +95,7 @@ def get_bitcoin_data_incremental(source='binance_1h', days=365, cache_dir='data/
         if source == 'yahoo':
             # Keep 2 years for Yahoo
             cutoff = datetime.now() - timedelta(days=730)
-        elif source == 'binance':
-            # Keep 60 days for 15-min
-            cutoff = datetime.now() - timedelta(days=60)
-        elif source == 'binance_1h':
+        elif source == 'cryptocompare_1h':
             # Keep 365 days for hourly
             cutoff = datetime.now() - timedelta(days=365)
 
@@ -153,94 +148,6 @@ class CryptoDataFetcher:
         """Conditionally print if verbose=True"""
         if self.verbose:
             print(*args, **kwargs)
-
-    def _fetch_binance_direct(self, symbol='BTCUSDT', interval='1h', days=60):
-        """
-        Fetch Binance data via direct REST API (no SDK, no geo-restrictions)
-
-        This is a fallback when the Binance SDK fails (e.g., GitHub Actions)
-        Uses public Binance API: https://api.binance.com/api/v3/klines
-
-        Supports pagination to fetch more than 1000 candles (Binance limit per request)
-
-        Args:
-            symbol (str): Trading pair (default: BTCUSDT)
-            interval (str): '15m' or '1h' (default: 1h)
-            days (int): Days of history (default: 60)
-
-        Returns:
-            pd.DataFrame or None
-        """
-        try:
-            self._print(f"Fetching {days}d of {interval} data via Binance REST API...")
-
-            # Calculate time range
-            end_time = datetime.now()
-            start_time = end_time - timedelta(days=days)
-            start_ts = int(start_time.timestamp() * 1000)
-            end_ts = int(end_time.timestamp() * 1000)
-
-            # Binance limit: 1000 candles per request, need pagination
-            all_klines = []
-            url = 'https://api.binance.com/api/v3/klines'
-            current_start = start_ts
-
-            while current_start < end_ts:
-                params = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'startTime': current_start,
-                    'endTime': end_ts,
-                    'limit': 1000  # Binance max per request
-                }
-
-                response = requests.get(url, params=params, timeout=30)
-                response.raise_for_status()
-                klines = response.json()
-
-                if not klines:
-                    break
-
-                all_klines.extend(klines)
-
-                # Move to next batch (last candle's close time + 1ms)
-                current_start = int(klines[-1][6]) + 1  # close_time is index 6
-
-                # Small delay to respect rate limits
-                if current_start < end_ts:
-                    time.sleep(0.1)
-
-            if not all_klines:
-                self._print("No data returned from Binance API")
-                return None
-
-            self._print(f"Received {len(all_klines)} candles (paginated)")
-
-            # Convert to DataFrame
-            # Binance kline format: [open_time, open, high, low, close, volume, close_time, ...]
-            df = pd.DataFrame(all_klines, columns=[
-                'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                'close_time', 'quote_volume', 'trades', 'taker_buy_base',
-                'taker_buy_quote', 'ignore'
-            ])
-
-            # Clean up
-            df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = df[col].astype(float)
-            df.set_index('timestamp', inplace=True)
-            df.sort_index(inplace=True)
-
-            # Remove duplicates if any
-            df = df[~df.index.duplicated(keep='first')]
-
-            self._print(f"Success: {len(df)} samples, ${df['close'].iloc[-1]:.2f}")
-            return df
-
-        except Exception as e:
-            self._print(f"Error with direct Binance API: {e}")
-            return None
 
     def _fetch_cryptocompare(self, interval='15m', days=60):
         """
@@ -366,7 +273,7 @@ class CryptoDataFetcher:
             self._print(f"CryptoCompare error: {e}")
             return None
 
-    def fetch_binance_15min(self, symbol='BTCUSDT', days=60):
+    def fetch_cryptocompare_15min(self, symbol='BTCUSDT', days=365):
         """
         Fetch 15-minute Bitcoin data from CryptoCompare
 
@@ -379,7 +286,7 @@ class CryptoDataFetcher:
         """
         return self._fetch_cryptocompare(interval='15m', days=days)
 
-    def fetch_binance_1hour(self, symbol='BTCUSDT', days=365):
+    def fetch_cryptocompare_1hour(self, symbol='BTCUSDT', days=365):
         """
         Fetch 1-hour Bitcoin data from CryptoCompare
 
@@ -469,17 +376,15 @@ class CryptoDataFetcher:
             self._print(f"Save error: {e}")
             return False
 
-    def fetch_all(self, days=60, include_yahoo=True, yahoo_period='2y'):
+    def fetch_all(self, days=365, include_yahoo=True, yahoo_period='2y'):
         """
         Fetch from all sources
 
         Returns:
-            dict: {'binance': df, 'binance_1h': df, 'yahoo': df}
+            dict: {'cryptocompare_1h': df, 'yahoo': df}
         """
         results = {}
-        results['binance'] = self.fetch_binance_15min(days=days)
-        time.sleep(1)
-        results['binance_1h'] = self.fetch_binance_1hour(days=days)
+        results['cryptocompare_1h'] = self._fetch_cryptocompare(interval='1h', days=days)
         if include_yahoo:
             time.sleep(1)
             results['yahoo'] = self.fetch_yahoo_daily(period=yahoo_period)
@@ -490,16 +395,16 @@ class CryptoDataFetcher:
 # BACKEND-FRIENDLY FUNCTIONS (Silent by default)
 # =============================================================================
 
-def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
+def get_bitcoin_data(source='yahoo', days=365, period='2y', symbol='BTCUSDT',
                      ticker='BTC-USD', interval='1d', return_dict=False, verbose=False):
     """
     Fetch Bitcoin data (for backend/API use)
 
     Args:
-        source: 'yahoo', 'binance', or 'binance_1h'
-        days: Days for Binance (default: 60)
+        source: 'yahoo' or 'cryptocompare_1h'
+        days: Days for Cryptocompare (default: 365)
         period: Period for Yahoo - '1mo', '1y', '2y', '5y'
-        symbol: Binance trading pair (default: BTCUSDT)
+        symbol: Cryptocompare trading pair (default: BTCUSDT)
         ticker: Yahoo ticker (default: BTC-USD)
         interval: Yahoo interval (default: 1d)
         return_dict: Return dict with metadata (default: False)
@@ -510,8 +415,7 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
 
     Example:
         df = get_bitcoin_data('yahoo', period='1y')
-        df = get_bitcoin_data('binance_1h', days=60)  # 1-hour candles
-        df = get_bitcoin_data('binance', days=60)     # 15-min candles
+        df = get_bitcoin_data('cryptocompare_1h', days=365)  # 1-hour candles
         result = get_bitcoin_data('yahoo', period='1y', return_dict=True)
     """
     fetcher = CryptoDataFetcher(verbose=verbose)
@@ -520,12 +424,10 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
     try:
         if source.lower() == 'yahoo':
             df = fetcher.fetch_yahoo_daily(ticker=ticker, period=period, interval=interval)
-        elif source.lower() == 'binance':
-            df = fetcher.fetch_binance_15min(symbol=symbol, days=days)
-        elif source.lower() == 'binance_1h':
-            df = fetcher.fetch_binance_1hour(symbol=symbol, days=days)
+        elif source.lower() == 'cryptocompare_1h':
+            df = fetcher.fetch_cryptocompare_1hour(symbol=symbol, days=days)
         else:
-            raise ValueError(f"Invalid source '{source}'. Valid options: 'yahoo', 'binance', 'binance_1h'")
+            raise ValueError(f"Invalid source '{source}'. Valid options: 'yahoo', 'cryptocompare_1h'")
 
         if df is None or df.empty:
             if return_dict:
@@ -535,7 +437,7 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
             return None
 
         if return_dict:
-            # Get latest price from 'close' column (Yahoo/Binance)
+            # Get latest price from 'close' column (Yahoo/Cryptocompare)
             if 'close' in df.columns:
                 latest_price = float(df['close'].iloc[-1])
             elif 'price' in df.columns:
@@ -562,57 +464,66 @@ def get_bitcoin_data(source='yahoo', days=60, period='2y', symbol='BTCUSDT',
         raise
 
 
-def get_latest_price(source='yahoo', ticker='BTC-USD'):
+def get_latest_price(ticker='BTC-USD'):
     """
-    Get latest Bitcoin price
-
-    Args:
-        source: 'yahoo' or 'binance'
-        ticker: Ticker symbol (default: BTC-USD)
-
+    Get current Bitcoin price from Yahoo Finance (fast and reliable)
+    
     Returns:
-        dict: {price, timestamp, source, currency, status}
-
+        dict: {
+            'price': float,
+            'timestamp': str (ISO format),
+            'status': 'success' or 'error',
+            'message': str (if error)
+        }
+    
     Example:
-        price_info = get_latest_price('yahoo')
-        print(f"BTC: ${price_info['price']:,.2f}")
+        result = get_current_btc_price()
+        if result['status'] == 'success':
+            print(f"BTC: ${result['price']:,.2f}")
     """
     try:
-        result = get_bitcoin_data(source=source, ticker=ticker, days=7, return_dict=True)
-
-        if result['status'] == 'error' or result['data'] is None:
-            return {'price': None, 'timestamp': None, 'source': source,
-                   'currency': 'USD', 'status': 'error',
-                   'message': result.get('message', 'Failed to fetch')}
-
-        df = result['data']
-        # Get price from either 'close' or 'price' column
-        if 'close' in df.columns:
-            price = float(df['close'].iloc[-1])
-        elif 'price' in df.columns:
-            price = float(df['price'].iloc[-1])
-        else:
-            price = None
-
+        # Method 1: Try fast API (Ticker.info) - instant
+        btc = yf.Ticker(ticker)
+        price = btc.info.get('regularMarketPrice') or btc.info.get('currentPrice')
+        
+        if price:
+            return {
+                'price': float(price),
+                'timestamp': datetime.now().isoformat(),
+                'status': 'success'
+            }
+        
+        # Method 2: Fallback to last candle (1 day history) - ~1 second
+        df = btc.history(period='1d', interval='1m')
+        if not df.empty:
+            return {
+                'price': float(df['Close'].iloc[-1]),
+                'timestamp': df.index[-1].isoformat(),
+                'status': 'success'
+            }
+        
+        # Both methods failed
         return {
-            'price': price,
-            'timestamp': str(df.index[-1]),
-            'source': source,
-            'currency': 'USD',
-            'status': 'success'
+            'price': None,
+            'timestamp': None,
+            'status': 'error',
+            'message': 'No price data available'
         }
-
+        
     except Exception as e:
-        return {'price': None, 'timestamp': None, 'source': source,
-               'currency': 'USD', 'status': 'error', 'message': str(e)}
-
+        return {
+            'price': None,
+            'timestamp': None,
+            'status': 'error',
+            'message': str(e)
+        }
 
 def save_bitcoin_data(source='yahoo', filename=None, data_dir='data/raw', **kwargs):
     """
     Fetch and save Bitcoin data to CSV
 
     Args:
-        source: 'yahoo', 'binance', or 'binance_1h'
+        source: 'yahoo' or 'cryptocompare_1h'
         filename: Output filename (auto-generated if None)
         data_dir: Save directory (default: data/raw)
         **kwargs: Passed to get_bitcoin_data()
@@ -641,10 +552,8 @@ def save_bitcoin_data(source='yahoo', filename=None, data_dir='data/raw', **kwar
             days = kwargs.get('days', 60)
             if source == 'yahoo':
                 filename = f'btc_yahoo_{period}_daily.csv'
-            elif source == 'binance':
-                filename = f'btc_binance_{days}d_15min.csv'
-            elif source == 'binance_1h':
-                filename = f'btc_binance_{days}d_1hour.csv'
+            elif source == 'cryptocompare_1h':
+                filename = f'btc_cryptocompare_{days}d_1hour.csv'
 
         os.makedirs(data_dir, exist_ok=True)
         filepath = os.path.join(data_dir, filename)
@@ -664,30 +573,99 @@ def save_bitcoin_data(source='yahoo', filename=None, data_dir='data/raw', **kwar
         return {'status': 'error', 'message': str(e), 'filepath': None}
 
 
-def get_all_sources(days=60, yahoo_period='2y', save_to_disk=False):
+def get_fear_greed_index(limit=730, verbose=False):
     """
-    Fetch from all sources
+    Fetch Fear & Greed Index from alternative.me API
+    
+    Crypto Fear & Greed Index (0-100):
+    - 0-24: Extreme Fear (buy signal)
+    - 25-49: Fear
+    - 50-74: Greed
+    - 75-100: Extreme Greed (sell signal)
+    
+    Args:
+        limit (int): Number of days to fetch (default: 730 = 2 years)
+        verbose (bool): Print detailed output (default: False)
+    
+    Returns:
+        pd.DataFrame with columns:
+            - timestamp (index): datetime
+            - fear_greed_value: 0-100 sentiment score
+            - fear_greed_class: text classification
+    """
+    try:
+        if verbose:
+            print(f"\n📊 Fetching Fear & Greed Index ({limit} days)...")
+        
+        # API endpoint (supports up to 1000+ records)
+        url = f"https://api.alternative.me/fng/?limit={min(limit, 1000)}"
+        
+        # Make request
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code != 200:
+            if verbose:
+                print(f"   ❌ HTTP {response.status_code}")
+            return None
+        
+        data = response.json()
+        
+        if 'data' not in data or not data['data']:
+            if verbose:
+                print("   ⚠️  No data returned")
+            return None
+        
+        # Convert to DataFrame
+        records = []
+        for item in data['data']:
+            records.append({
+                'timestamp': datetime.fromtimestamp(int(item['timestamp'])),
+                'fear_greed_value': int(item['value']),
+                'fear_greed_class': item['value_classification']
+            })
+        
+        df = pd.DataFrame(records)
+        df.set_index('timestamp', inplace=True)
+        df.sort_index(inplace=True)
+        
+        if verbose:
+            print(f"   ✓ Fetched {len(df)} days")
+            print(f"   Range: {df.index[0].date()} to {df.index[-1].date()}")
+            print(f"   Current: {df['fear_greed_value'].iloc[-1]} ({df['fear_greed_class'].iloc[-1]})")
+        
+        return df
+    
+    except Exception as e:
+        if verbose:
+            print(f"   ❌ Error: {e}")
+        return None
+
+
+def get_all_sources(days=365, yahoo_period='2y', save_to_disk=False):
+    """
+    Fetch from all sources (Daily + Hourly only)
 
     Args:
-        days: Days for Binance
-        yahoo_period: Period for Yahoo
+        days: Days for Cryptocompare hourly (default: 365)
+        yahoo_period: Period for Yahoo daily (default: '2y')
         save_to_disk: Save CSV files (default: False)
 
     Returns:
-        dict: {'yahoo': result, 'binance': result, 'binance_1h': result}
+        dict: {'yahoo': result, 'cryptocompare_1h': result}
 
     Example:
-        all_data = get_all_sources(days=30, yahoo_period='1y')
+        all_data = get_all_sources(days=365, yahoo_period='2y')
         if all_data['yahoo']['status'] == 'success':
             df = all_data['yahoo']['data']
     """
     results = {}
 
+    # Daily data: Yahoo Finance (2 years)
     results['yahoo'] = get_bitcoin_data('yahoo', period=yahoo_period, return_dict=True)
     time.sleep(1)
-    results['binance'] = get_bitcoin_data('binance', days=days, return_dict=True)
-    time.sleep(1)
-    results['binance_1h'] = get_bitcoin_data('binance_1h', days=days, return_dict=True)
+    
+    # Hourly data: CryptoCompare (365 days)
+    results['cryptocompare_1h'] = get_bitcoin_data('cryptocompare_1h', days=days, return_dict=True)
 
     if save_to_disk:
         for source, data in results.items():
