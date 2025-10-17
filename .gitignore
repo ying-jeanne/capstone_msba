@@ -3,3 +3,4 @@ venv/*
 .DS_Store
 CLAUDE.md
 __pycache__/*
+.env

@@ -1,0 +1,53 @@
+name: Store Daily Predictions On-Chain
+
+on:
+  schedule:
+    # Run daily at 6:30 PM UTC (30 min after predict_daily.yml at 6:00 PM)
+    - cron: '30 18 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write  # Allow workflow to push commits
+
+jobs:
+  store-onchain:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-blockchain-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-blockchain-
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install web3 python-dotenv pandas
+
+    - name: Store prediction on Moonbase Alpha
+      env:
+        MOONBASE_PRIVATE_KEY: ${{ secrets.MOONBASE_PRIVATE_KEY }}
+        CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
+        MOONBASE_RPC_URL: https://rpc.api.moonbase.moonbeam.network
+      run: |
+        echo "📤 Storing daily prediction on blockchain..."
+        python utils/store_daily_prediction_onchain.py
+
+    - name: Commit updated files
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add data/predictions/ data/blockchain/
+        git diff --quiet && git diff --staged --quiet || (git commit -m "⛓️ Blockchain prediction - $(date +'%Y-%m-%d %H:%M UTC')" && git push)

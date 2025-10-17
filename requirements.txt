@@ -13,3 +13,4 @@ web3
 requests
 catboost
 lightgbm
+python-dotenv

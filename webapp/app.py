@@ -25,11 +25,17 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.data_fetcher import get_latest_price
 from utils.prediction_loader import PredictionLoader
+from utils.blockchain_integration import (
+    get_predictions_with_outcomes,
+    get_performance_summary,
+    CONTRACT_ADDRESS
+)
 
 app = Flask(__name__)
 
 # Configuration
 RESULTS_DIR = Path(__file__).parent.parent / 'results'
+USE_DEMO_DATA = True  # Set to False when using real blockchain data
 
 # Initialize prediction loader (fetches from GitHub with caching)
 prediction_loader = PredictionLoader()
@@ -504,43 +510,48 @@ def results():
 
 @app.route('/live')
 def live():
-    """Page 3: Live Performance & Smart Contract."""
-    current_data = get_live_data()
-    predictions_data = get_local_predictions()
+    """Page 3: Live Performance & Blockchain Verification."""
+    try:
+        # Get current price
+        current_data = get_live_data()
 
-    # Calculate summary stats
-    daily_predictions = [p for p in predictions_data if p.get('timeframe') == 'daily']
-    if daily_predictions:
-        recent_predictions = daily_predictions[-7:] if len(daily_predictions) > 7 else daily_predictions
+        # Get blockchain predictions with outcomes
+        blockchain_predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA)
 
-        mape_values = [p.get('mape', 0.0) for p in recent_predictions if p.get('mape') is not None]
-        avg_mape = round(sum(mape_values) / len(mape_values), 2) if mape_values else 0.0
+        # Get performance summary
+        summary = get_performance_summary(use_demo=USE_DEMO_DATA)
 
-        latest_pred = dict(daily_predictions[-1])
-    else:
-        recent_predictions = []
-        avg_mape = 0.0
-        latest_pred = {
-            'date': datetime.now().strftime('%Y-%m-%d'),
-            'current_price': current_data['price'],
-            'predicted_price_1d': current_data['price'],
-            'predicted_return_1d': 0.0,
-            'actual_price_1d': current_data['price'],
-            'error': 0.0,
-            'mape': 0.0,
-            'transaction_hash': 'N/A',
-            'block_number': 0
-        }
+        # Add current price and timestamp to summary
+        summary['current_price'] = current_data['price']
+        summary['timestamp'] = current_data['timestamp']
 
-    summary = {
-        'current_price': current_data['price'],
-        'timestamp': current_data['timestamp'],
-        'total_predictions': len(daily_predictions),
-        'avg_mape_7d': round(avg_mape, 2),
-        'latest_prediction': latest_pred
-    }
+        return render_template(
+            'live.html',
+            blockchain_predictions=blockchain_predictions,
+            summary=summary,
+            demo_mode=USE_DEMO_DATA,
+            contract_address=CONTRACT_ADDRESS
+        )
+    except Exception as e:
+        # Fallback to empty data on error
+        print(f"Error in /live route: {e}")
+        import traceback
+        traceback.print_exc()
 
-    return render_template('live.html', summary=summary, predictions=predictions_data)
+        return render_template(
+            'live.html',
+            blockchain_predictions=[],
+            summary={
+                'current_price': 0,
+                'timestamp': '',
+                'total_predictions': 0,
+                'avg_mape_1d': 0,
+                'directional_accuracy_1d': 0
+            },
+            demo_mode=USE_DEMO_DATA,
+            contract_address=CONTRACT_ADDRESS,
+            error=str(e)
+        )
 
 
 # ============================================================================
@@ -572,6 +583,28 @@ def api_all_predictions():
         'status': 'success',
         'predictions': predictions
     })
+
+
+@app.route('/api/blockchain-predictions')
+def api_blockchain_predictions():
+    """Get blockchain predictions with actual outcomes."""
+    try:
+        predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA)
+        summary = get_performance_summary(use_demo=USE_DEMO_DATA)
+
+        return jsonify({
+            'status': 'success',
+            'predictions': predictions,
+            'summary': summary,
+            'contract_address': CONTRACT_ADDRESS,
+            'demo_mode': USE_DEMO_DATA,
+            'explorer_url': f'https://moonbase.moonscan.io/address/{CONTRACT_ADDRESS}'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/predictions/<timeframe>')
 def api_predictions_by_timeframe(timeframe):
