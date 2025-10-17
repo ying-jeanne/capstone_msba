@@ -72,25 +72,25 @@ def prepare_data_for_horizon(df, horizon_days=1):
     return X_scaled, y, feature_cols, scaler, current_prices
 
 
-def prepare_hourly_data(df, horizon_hours=1):
-    """Prepare hourly data for a specific prediction horizon."""
-    df[f'future_return_{horizon_hours}h'] = df['close'].pct_change(horizon_hours).shift(-horizon_hours)
-    df['current_price'] = df['close']
+# def prepare_hourly_data(df, horizon_hours=1):
+#     """Prepare hourly data for a specific prediction horizon."""
+#     df[f'future_return_{horizon_hours}h'] = df['close'].pct_change(horizon_hours).shift(-horizon_hours)
+#     df['current_price'] = df['close']
 
-    df_clean = df.dropna(subset=[f'future_return_{horizon_hours}h']).copy()
+#     df_clean = df.dropna(subset=[f'future_return_{horizon_hours}h']).copy()
 
-    exclude_cols = ['open', 'high', 'low', 'close', 'volume', 'current_price'] + \
-                   [col for col in df_clean.columns if 'future_return' in col or 'future_price' in col]
-    feature_cols = [col for col in df_clean.columns if col not in exclude_cols]
+#     exclude_cols = ['open', 'high', 'low', 'close', 'volume', 'current_price'] + \
+#                    [col for col in df_clean.columns if 'future_return' in col or 'future_price' in col]
+#     feature_cols = [col for col in df_clean.columns if col not in exclude_cols]
 
-    X = df_clean[feature_cols].values
-    y = df_clean[f'future_return_{horizon_hours}h'].values
-    current_prices = df_clean['current_price'].values
+#     X = df_clean[feature_cols].values
+#     y = df_clean[f'future_return_{horizon_hours}h'].values
+#     current_prices = df_clean['current_price'].values
 
-    scaler = RobustScaler()
-    X_scaled = scaler.fit_transform(X)
+#     scaler = RobustScaler()
+#     X_scaled = scaler.fit_transform(X)
 
-    return X_scaled, y, feature_cols, scaler, current_prices
+#     return X_scaled, y, feature_cols, scaler, current_prices
 
 
 def train_xgboost(X_train, y_train, X_val, y_val):
@@ -361,46 +361,46 @@ def main():
     if not hourly_path.exists():
         hourly_path = data_dir / 'raw' / 'btc_binance_150d_1hour.csv'
 
-    if hourly_path.exists():
-        print(f"\nLoading hourly dataset: {hourly_path.name}")
-        hourly_df = pd.read_csv(hourly_path)
+    # if hourly_path.exists():
+    #     print(f"\nLoading hourly dataset: {hourly_path.name}")
+    #     hourly_df = pd.read_csv(hourly_path)
 
-        if 'timestamp' in hourly_df.columns:
-            hourly_df['timestamp'] = pd.to_datetime(hourly_df['timestamp'])
-            hourly_df = hourly_df.sort_values('timestamp').reset_index(drop=True)
-            hourly_df = hourly_df.set_index('timestamp')
-        else:
-            hourly_df.index = pd.to_datetime(hourly_df.index)
+    #     if 'timestamp' in hourly_df.columns:
+    #         hourly_df['timestamp'] = pd.to_datetime(hourly_df['timestamp'])
+    #         hourly_df = hourly_df.sort_values('timestamp').reset_index(drop=True)
+    #         hourly_df = hourly_df.set_index('timestamp')
+    #     else:
+    #         hourly_df.index = pd.to_datetime(hourly_df.index)
 
-        hourly_df = engineer_technical_features(hourly_df)
-        hourly_df = hourly_df.dropna()
+    #     hourly_df = engineer_technical_features(hourly_df)
+    #     hourly_df = hourly_df.dropna()
 
-        print(f"   Rows after feature engineering: {len(hourly_df)}")
+    #     print(f"   Rows after feature engineering: {len(hourly_df)}")
 
-        hourly_horizons = [1, 4, 12]
-        for horizon in hourly_horizons:
-            print(f"\nHourly horizon: {horizon}h (Random Forest)")
-            X, y, feature_cols, scaler, current_prices = prepare_hourly_data(hourly_df.copy(), horizon)
+    #     hourly_horizons = [1, 4, 12]
+    #     for horizon in hourly_horizons:
+    #         print(f"\nHourly horizon: {horizon}h (Random Forest)")
+    #         X, y, feature_cols, scaler, current_prices = prepare_hourly_data(hourly_df.copy(), horizon)
 
-            train_size = int(len(X) * 0.70)
-            val_size = int(len(X) * 0.85)
+    #         train_size = int(len(X) * 0.70)
+    #         val_size = int(len(X) * 0.85)
 
-            X_train, y_train = X[:train_size], y[:train_size]
-            X_val, y_val = X[train_size:val_size], y[train_size:val_size]
-            X_test, y_test = X[val_size:], y[val_size:]
+    #         X_train, y_train = X[:train_size], y[:train_size]
+    #         X_val, y_val = X[train_size:val_size], y[train_size:val_size]
+    #         X_test, y_test = X[val_size:], y[val_size:]
 
-            prices_test = current_prices[val_size:]
+    #         prices_test = current_prices[val_size:]
 
-            rf_model, rf_time = train_random_forest(X_train, y_train, X_val, y_val)
-            rf_results = evaluate_model(rf_model, X_test, y_test, prices_test, 'Random Forest', f'{horizon}h', 'Hourly')
-            rf_results['Train_Time'] = rf_time
-            all_results.append(rf_results)
+    #         rf_model, rf_time = train_random_forest(X_train, y_train, X_val, y_val)
+    #         rf_results = evaluate_model(rf_model, X_test, y_test, prices_test, 'Random Forest', f'{horizon}h', 'Hourly')
+    #         rf_results['Train_Time'] = rf_time
+    #         all_results.append(rf_results)
 
-            print(f"   Random Forest → MAPE: {rf_results['Price_MAPE']:.2f}%, Directional: {rf_results['Directional_Accuracy']:.1f}%, Time: {rf_time:.1f}s")
+    #         print(f"   Random Forest → MAPE: {rf_results['Price_MAPE']:.2f}%, Directional: {rf_results['Directional_Accuracy']:.1f}%, Time: {rf_time:.1f}s")
 
-            joblib.dump(rf_model, models_dir / f'random_forest_{horizon}h.pkl')
-    else:
-        print(f"\n⚠️  Hourly benchmark skipped – data file not found: {hourly_path}")
+    #         joblib.dump(rf_model, models_dir / f'random_forest_{horizon}h.pkl')
+    # else:
+    #     print(f"\n⚠️  Hourly benchmark skipped – data file not found: {hourly_path}")
     
     # Save comparison results
     print(f"\n{'=' * 80}")

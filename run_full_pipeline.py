@@ -21,7 +21,6 @@ import subprocess
 from datetime import datetime
 
 # Import data fetcher functions
-from utils.data_fetcher import get_bitcoin_data_incremental
 
 # Color codes for terminal output
 class Colors:
@@ -131,17 +130,8 @@ def main():
         else:
             print_warning("Yahoo data fetch failed, using cached data if available")
 
-        # Fetch Cryptocompare hourly data incrementally
-        print("\n📊 Fetching Cryptocompare hourly data (365 days)...")
-        crypto_df = get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, verbose=True)
 
-        if crypto_df is not None:
-            print_success(f"Cryptocompare: {len(crypto_df)} samples ({crypto_df.index[0].date()} to {crypto_df.index[-1].date()})")
-            completed_steps.append("Crypto Data Fetch")
-        else:
-            print_warning("Cryptocompare data fetch failed, using cached data if available")
-
-        if yahoo_df is not None or crypto_df is not None:
+        if yahoo_df is not None:
             print_success(f"Data fetching completed (incremental)")
             if "Yahoo Data Fetch" not in completed_steps and "Crypto Data Fetch" not in completed_steps:
                 completed_steps.append("Data Fetching")
@@ -156,35 +146,36 @@ def main():
     # STEP 2: Train Daily Models (1d, 3d, 7d)
     # ========================================================================
     print_step(2, "TRAIN DAILY MODELS (1d, 3d, 7d)")
-    print("   Training daily XGBoost models:")
-    print("   - Uses Yahoo Finance 2y daily data")
+    print("   Training daily models with multiple algorithms:")
+    print("   - Uses Yahoo Finance 5y daily data (see 10Y_VS_5Y_COMPARISON.md)")
     print("   - Includes sentiment features (Fear & Greed)")
-    print("   - Expected MAPE: ~1.30% (1-day)")
-    print("   - Training 3 models: 1-day, 3-day, 7-day")
+    print("   - Models: XGBoost, Random Forest, LightGBM, CatBoost")
+    print("   - Expected MAPE: ~1.53% (1-day)")
+    print("   - Training 3 horizons: 1-day, 3-day, 7-day")
 
     if run_script("utils/train_daily_models.py", "Train daily XGBoost models"):
         completed_steps.append("Daily Models Training")
     else:
         print_warning("Daily models training failed, but continuing...")
 
-    # ========================================================================
-    # STEP 3: Train Hourly Models (1h, 4h, 6h, 12h, 24h)
-    # ========================================================================
-    print_step(3, "TRAIN HOURLY MODELS (1h, 4h, 6h, 12h, 24h)")
-    print("   Training hourly XGBoost models:")
-    print("   - Uses Cryptocompare 365d hourly data")
-    print("   - NO sentiment (Fear & Greed is daily only)")
-    print("   - Training 5 models: 1h, 4h, 6h, 12h, 24h")
+    # # ========================================================================
+    # # STEP 3: Train Hourly Models (1h, 4h, 6h, 12h, 24h)
+    # # ========================================================================
+    # print_step(3, "TRAIN HOURLY MODELS (1h, 4h, 6h, 12h, 24h)")
+    # print("   Training hourly XGBoost models:")
+    # print("   - Uses Cryptocompare 365d hourly data")
+    # print("   - NO sentiment (Fear & Greed is daily only)")
+    # print("   - Training 5 models: 1h, 4h, 6h, 12h, 24h")
 
-    if run_script("utils/train_hourly_models.py", "Train hourly XGBoost models"):
-        completed_steps.append("Hourly Models Training")
-    else:
-        print_warning("Hourly models training failed, but continuing...")
+    # if run_script("utils/train_hourly_models.py", "Train hourly XGBoost models"):
+    #     completed_steps.append("Hourly Models Training")
+    # else:
+    #     print_warning("Hourly models training failed, but continuing...")
 
     # ========================================================================
-    # STEP 4: Generate Daily Predictions
+    # STEP 3: Generate Daily Predictions
     # ========================================================================
-    print_step(4, "GENERATE DAILY PREDICTIONS")
+    print_step(3, "GENERATE DAILY PREDICTIONS")
     print("   Generating predictions using trained daily models:")
     print("   - 1-day, 3-day, 7-day predictions")
     print("   - Saves to data/predictions/daily_predictions.csv")
@@ -195,17 +186,17 @@ def main():
         print_warning("Daily predictions failed, but continuing...")
 
     # ========================================================================
-    # STEP 5: Generate Hourly Predictions
+    # STEP 4: Generate Hourly Predictions
     # ========================================================================
-    print_step(5, "GENERATE HOURLY PREDICTIONS")
-    print("   Generating predictions using trained hourly models:")
-    print("   - 1h, 4h, 6h, 12h, 24h predictions")
-    print("   - Saves to data/predictions/hourly_predictions.csv")
+    # print_step(4, "GENERATE HOURLY PREDICTIONS")
+    # print("   Generating predictions using trained hourly models:")
+    # print("   - 1h, 4h, 6h, 12h, 24h predictions")
+    # print("   - Saves to data/predictions/hourly_predictions.csv")
 
-    if run_script("utils/predict_hourly.py", "Generate hourly predictions"):
-        completed_steps.append("Hourly Predictions")
-    else:
-        print_warning("Hourly predictions failed, but continuing...")
+    # if run_script("utils/predict_hourly.py", "Generate hourly predictions"):
+    #     completed_steps.append("Hourly Predictions")
+    # else:
+    #     print_warning("Hourly predictions failed, but continuing...")
 
 
 
@@ -218,7 +209,7 @@ def main():
     for i, step in enumerate(completed_steps, 1):
         print(f"   {Colors.OKGREEN}✓{Colors.ENDC} {step}")
 
-    total_steps = 5  # Updated: Data, Features, DataPrep, Daily, Hourly
+    total_steps = 3  # Updated: Data, Features, DataPrep, Daily, Hourly
     success_rate = (len(completed_steps) / total_steps) * 100
 
     print(f"\n{Colors.BOLD}Success Rate: {success_rate:.0f}% ({len(completed_steps)}/{total_steps} steps){Colors.ENDC}")
@@ -235,9 +226,9 @@ def main():
     print(f"   📊 Daily Models: {Colors.OKCYAN}models/saved_models/daily/{Colors.ENDC}")
     print(f"   📊 Hourly Models: {Colors.OKCYAN}models/saved_models/hourly/{Colors.ENDC}")
     print(f"   📈 Daily Predictions: {Colors.OKCYAN}data/predictions/daily_predictions.csv{Colors.ENDC}")
-    print(f"   📈 Hourly Predictions: {Colors.OKCYAN}data/predictions/hourly_predictions.csv{Colors.ENDC}")
+    # print(f"   📈 Hourly Predictions: {Colors.OKCYAN}data/predictions/hourly_predictions.csv{Colors.ENDC}")
     print(f"   � Daily Metrics: {Colors.OKCYAN}results/daily_models_metrics.csv{Colors.ENDC}")
-    print(f"   📋 Hourly Metrics: {Colors.OKCYAN}results/hourly_models_metrics.csv{Colors.ENDC}")
+    # print(f"   📋 Hourly Metrics: {Colors.OKCYAN}results/hourly_models_metrics.csv{Colors.ENDC}")
 
     print(f"\n{Colors.BOLD}Pipeline End Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.ENDC}")
     print(f"\n{'='*70}\n")
@@ -245,7 +236,7 @@ def main():
     # Show next steps
     print(f"{Colors.BOLD}NEXT STEPS:{Colors.ENDC}")
     print(f"   1. View daily predictions: {Colors.OKCYAN}cat data/predictions/daily_predictions.csv{Colors.ENDC}")
-    print(f"   2. View hourly predictions: {Colors.OKCYAN}cat data/predictions/hourly_predictions.csv{Colors.ENDC}")
+    # print(f"   2. View hourly predictions: {Colors.OKCYAN}cat data/predictions/hourly_predictions.csv{Colors.ENDC}")
     print(f"   3. Check model performance: {Colors.OKCYAN}cat results/*_metrics.csv{Colors.ENDC}")
     print(f"   4. Read documentation: {Colors.OKCYAN}cat DATASOURCE.md{Colors.ENDC}")
     print(f"\n{'='*70}\n")

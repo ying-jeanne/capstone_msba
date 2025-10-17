@@ -3,7 +3,7 @@
 {% block title %}Methodology - Bitcoin Price Prediction{% endblock %}
 
 {% block content %}
-<div class="page-header page-header-with-bg" style="background-image: url('{{ url_for('static', filename='images/bitcoin1.jpg') }}');">
+<div class="page-header page-header-with-bg" style="background-image: url({{ url_for('static', filename='images/bitcoin1.jpg') }});">
     <h1>Bitcoin Price Prediction</h1>
     <p class="page-subtitle">Return-Based BitCoin Price Prediction</p>
 </div>
@@ -35,12 +35,12 @@
     <div class="stat-card">
         <div class="stat-icon">✅</div>
         <div class="stat-value">56.6%</div>
-        <div class="stat-label">Best Directional (7d)</div>
+        <div class="stat-label">Best Directional (7-Day)</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">⚡</div>
-        <div class="stat-value">8</div>
-        <div class="stat-label">Multi-Timeframe Models</div>
+        <div class="stat-value">3</div>
+        <div class="stat-label">Live Daily Horizons</div>
     </div>
 </section>
 
@@ -49,7 +49,7 @@
     <div class="card">
         <h2>Return-Based Prediction Approach</h2>
         <div class="approach-with-image">
-            <div class="approach-image" style="background-image: url('{{ url_for('static', filename='images/bitcoin2.jpg') }}');"></div>
+            <div class="approach-image" style="background-image: url({{ url_for('static', filename='images/bitcoin2.jpg') }});"></div>
             <div class="approach-content">
                 <div class="approach-box">
                     <div class="approach-icon">✅</div>
@@ -75,7 +75,7 @@
 <!-- Feature Categories - Collapsible -->
 <section id="features" class="features-section">
     <h2>58 Engineered Features</h2>
-    <p class="section-intro-small">Daily models: 58 features (55 technical + 3 sentiment) | Hourly models: 55 features (no sentiment) | Click any category to see details</p>
+    <p class="section-intro-small">Live production models use 58 features (55 technical + 3 sentiment). Click any category to see details.</p>
 
     <div class="feature-grid">
         <!-- Technical Indicators -->
@@ -285,27 +285,27 @@
 
 <!-- Models -->
 <section id="models" class="models-section">
-    <h2>Multi-Timeframe XGBoost Models</h2>
+    <h2>Daily XGBoost Horizons</h2>
     <div class="models-grid">
         <div class="model-card best-model">
-            <div class="model-badge">⭐ Best Daily</div>
+            <div class="model-badge">⭐ Best Precision</div>
+            <h3>1-Day Model</h3>
+            <div class="model-stat">1.53% MAPE</div>
+            <p class="model-desc">51.4% directional accuracy for daily trades.</p>
+        </div>
+        <div class="model-card">
             <h3>3-Day Model</h3>
             <div class="model-stat">2.59% MAPE</div>
-            <p class="model-desc">55.3% directional - profitable edge!</p>
+            <p class="model-desc">55.3% directional edge for swing setups.</p>
         </div>
         <div class="model-card">
             <h3>7-Day Model</h3>
             <div class="model-stat">3.88% MAPE</div>
-            <p class="model-desc">56.6% directional - strong trend!</p>
-        </div>
-        <div class="model-card">
-            <h3>1-Hour Model</h3>
-            <div class="model-stat">0.24% MAPE</div>
-            <p class="model-desc">Best short-term precision</p>
+            <p class="model-desc">56.6% directional for weekly trend calls.</p>
         </div>
     </div>
     <p style="text-align: center; margin-top: 1rem; color: #7f8c8d;">
-        <strong>8 total models:</strong> Daily (1d, 3d, 7d) + Hourly (1h, 4h, 6h, 12h, 24h)
+        <strong>Current production scope:</strong> Daily horizons (1d, 3d, 7d) powered by XGBoost.
     </p>
 </section>
 
@@ -316,19 +316,19 @@
         <div class="pipeline-step-simple">
             <div class="step-number">1</div>
             <h4>Fetch Data</h4>
-            <p>3 sources</p>
+            <p>2 sources</p>
         </div>
         <div class="pipeline-arrow">→</div>
         <div class="pipeline-step-simple">
             <div class="step-number">2</div>
             <h4>Engineer</h4>
-            <p>55+ features</p>
+            <p>58 features</p>
         </div>
         <div class="pipeline-arrow">→</div>
         <div class="pipeline-step-simple">
             <div class="step-number">3</div>
             <h4>Train</h4>
-            <p>3 models</p>
+            <p>4 models</p>
         </div>
         <div class="pipeline-arrow">→</div>
         <div class="pipeline-step-simple">

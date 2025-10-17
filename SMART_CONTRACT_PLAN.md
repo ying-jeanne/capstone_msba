@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-This document outlines the strategy for storing Bitcoin price predictions on a blockchain using smart contracts. The goal is to provide **immutable, transparent, and verifiable proof** of our model's real-world performance over time.
+This document outlines the strategy for storing Bitcoin price predictions on a blockchain using smart contracts. The goal is to provide **immutable, transparent, and verifiable proof** of our model's real-world performance over time. Use moonbase and online remix compiler for the contract.
 
 ### Key Benefits
 - **Immutability**: Once stored, predictions cannot be altered or deleted

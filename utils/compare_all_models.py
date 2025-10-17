@@ -23,9 +23,7 @@ REQUIRED_COLUMNS = [
     'MAPE (%)',
     'MAE ($)',
     'Directional Acc (%)',
-    'R²',
-    'Mean Error ($)',
-    'RMSE ($)'
+    'R²'
 ]
 
 
@@ -46,8 +44,7 @@ def load_all_results():
             'Price_MAPE': 'MAPE (%)',
             'Price_MAE': 'MAE ($)',
             'Directional_Accuracy': 'Directional Acc (%)',
-            'Return_R2': 'R²',
-            'Return_MAE': 'Return MAE'
+            'Return_R2': 'R²'
         })
 
         # Ensure expected columns exist
@@ -55,8 +52,11 @@ def load_all_results():
             if col not in df.columns:
                 df[col] = np.nan
 
+        df['Balanced Score'] = df['Directional Acc (%)'] - 0.5 * df['MAPE (%)']
+
         # Reorder
-        df = df[[col for col in REQUIRED_COLUMNS if col in df.columns] + [c for c in df.columns if c not in REQUIRED_COLUMNS]]
+        ordered_cols = REQUIRED_COLUMNS + ['Balanced Score'] + [c for c in df.columns if c not in REQUIRED_COLUMNS + ['Balanced Score']]
+        df = df[ordered_cols]
         return df.reset_index(drop=True)
 
     # Fallback to legacy CSVs if available
@@ -79,7 +79,8 @@ def load_all_results():
         )
 
     all_results = pd.concat(frames, ignore_index=True)
-    return all_results
+    all_results['Balanced Score'] = all_results['Directional Acc (%)'] - 0.5 * all_results['MAPE (%)']
+    return all_results.reset_index(drop=True)
 
 
 def create_comparison_visualizations(df):
@@ -89,7 +90,7 @@ def create_comparison_visualizations(df):
     models = df['Model'].unique()
     horizons = ['1d', '3d', '7d']
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 
     # Define colors for each model
     palette = plt.get_cmap('tab10')
@@ -105,100 +106,42 @@ def create_comparison_visualizations(df):
     for idx, model in enumerate(models):
         colors[model] = default_colors.get(model, palette(idx % 10))
 
-    # 1. R² Comparison
-    ax = axes[0, 0]
     x = np.arange(len(horizons))
-    width = 0.25
+    width = max(0.15, 0.65 / max(len(models), 1))
 
-    for i, model in enumerate(models):
-        model_data = df[df['Model'] == model]
-        r2_values = [model_data[model_data['Horizon'] == h]['R²'].values[0] for h in horizons]
-        ax.bar(x + i*width, r2_values, width, label=model, color=colors[model], alpha=0.8)
+    # Helper to plot grouped bars
+    def plot_metric(ax, metric_key, title, ylabel, highlight_line=None):
+        for i, model in enumerate(models):
+            model_data = df[df['Model'] == model]
+            values = []
+            for h in horizons:
+                rows = model_data[model_data['Horizon'] == h]
+                if metric_key in rows.columns and not rows.empty:
+                    values.append(rows.iloc[0][metric_key])
+                else:
+                    values.append(np.nan)
+            ax.bar(x + i * width, values, width, label=model, color=colors[model], alpha=0.85)
 
-    ax.set_ylabel('R² Score', fontsize=12, fontweight='bold')
-    ax.set_title('R² Score Comparison', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels(horizons)
-    ax.legend()
-    ax.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax.grid(True, alpha=0.3, axis='y')
+        ax.set_ylabel(ylabel, fontsize=12, fontweight='bold')
+        ax.set_title(title, fontsize=14, fontweight='bold')
+        center_offset = ((len(models) - 1) / 2) * width
+        ax.set_xticks(x + center_offset)
+        ax.set_xticklabels(horizons)
+        ax.grid(True, alpha=0.3, axis='y')
+        if highlight_line is not None:
+            ax.axhline(y=highlight_line[0], color=highlight_line[1], linestyle='--', alpha=0.5, linewidth=1)
 
-    # 2. MAPE Comparison
-    ax = axes[0, 1]
-    for i, model in enumerate(models):
-        model_data = df[df['Model'] == model]
-        mape_values = [model_data[model_data['Horizon'] == h]['MAPE (%)'].values[0] for h in horizons]
-        ax.bar(x + i*width, mape_values, width, label=model, color=colors[model], alpha=0.8)
+    plot_metric(axes[0, 0], 'MAPE (%)', 'MAPE Comparison (Lower is Better)', 'MAPE (%)', highlight_line=(5, 'green'))
+    plot_metric(axes[0, 1], 'R²', 'R² Score Comparison', 'R² Score', highlight_line=(0, 'black'))
+    plot_metric(axes[1, 0], 'MAE ($)', 'Mean Absolute Error Comparison', 'MAE ($)')
+    plot_metric(axes[1, 1], 'Balanced Score', 'Balanced Score Comparison (Higher is Better)', 'Balanced Score', highlight_line=(0, 'black'))
 
-    ax.set_ylabel('MAPE (%)', fontsize=12, fontweight='bold')
-    ax.set_title('MAPE Comparison (Lower is Better)', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels(horizons)
-    ax.legend()
-    ax.axhline(y=5, color='green', linestyle='--', alpha=0.5, linewidth=1, label='Target: <5%')
-    ax.grid(True, alpha=0.3, axis='y')
-
-    # 3. MAE Comparison
-    ax = axes[0, 2]
-    for i, model in enumerate(models):
-        model_data = df[df['Model'] == model]
-        mae_values = [model_data[model_data['Horizon'] == h]['MAE ($)'].values[0] for h in horizons]
-        ax.bar(x + i*width, mae_values, width, label=model, color=colors[model], alpha=0.8)
-
-    ax.set_ylabel('MAE ($)', fontsize=12, fontweight='bold')
-    ax.set_title('Mean Absolute Error Comparison', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels(horizons)
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
-
-    # 4. Directional Accuracy Comparison
-    ax = axes[1, 0]
-    for i, model in enumerate(models):
-        model_data = df[df['Model'] == model]
-        dir_acc_values = [model_data[model_data['Horizon'] == h]['Directional Acc (%)'].values[0] for h in horizons]
-        ax.bar(x + i*width, dir_acc_values, width, label=model, color=colors[model], alpha=0.8)
-
-    ax.set_ylabel('Directional Accuracy (%)', fontsize=12, fontweight='bold')
-    ax.set_title('Directional Accuracy Comparison', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels(horizons)
-    ax.legend()
-    ax.axhline(y=50, color='red', linestyle='--', alpha=0.5, linewidth=1, label='Random Guess')
-    ax.grid(True, alpha=0.3, axis='y')
-
-    # 5. Mean Error (Bias) Comparison
-    ax = axes[1, 1]
-    for i, model in enumerate(models):
-        model_data = df[df['Model'] == model]
-        mean_error_values = [model_data[model_data['Horizon'] == h]['Mean Error ($)'].values[0] for h in horizons]
-        ax.bar(x + i*width, mean_error_values, width, label=model, color=colors[model], alpha=0.8)
-
-    ax.set_ylabel('Mean Error ($)', fontsize=12, fontweight='bold')
-    ax.set_title('Bias Analysis (Closer to 0 is Better)', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels(horizons)
-    ax.legend()
-    ax.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax.grid(True, alpha=0.3, axis='y')
-
-    # 6. RMSE Comparison
-    ax = axes[1, 2]
-    for i, model in enumerate(models):
-        model_data = df[df['Model'] == model]
-        rmse_values = [model_data[model_data['Horizon'] == h]['RMSE ($)'].values[0] for h in horizons]
-        ax.bar(x + i*width, rmse_values, width, label=model, color=colors[model], alpha=0.8)
-
-    ax.set_ylabel('RMSE ($)', fontsize=12, fontweight='bold')
-    ax.set_title('Root Mean Squared Error Comparison', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width)
-    ax.set_xticklabels(horizons)
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', ncol=min(len(models), 5), frameon=False, fontsize=11)
 
     plt.suptitle('Return-Based Models - Comprehensive Performance Comparison',
-                 fontsize=16, fontweight='bold', y=0.995)
-    plt.tight_layout()
+                 fontsize=16, fontweight='bold', y=0.98)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
 
     save_path = Path('results/all_models_returns_comparison.png')
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -240,12 +183,11 @@ def create_ranking_table(df):
         for i, (_, row) in enumerate(horizon_data_sorted.iterrows(), 1):
             print(f"     {i}. {row['Model']}: {row['Directional Acc (%)']:.1f}%")
 
-        # Rank by |Mean Error| (closer to 0 is better)
-        horizon_data['Abs Mean Error'] = horizon_data['Mean Error ($)'].abs()
-        horizon_data_sorted = horizon_data.sort_values('Abs Mean Error')
-        print(f"\n  📊 By Bias - |Mean Error| (Closer to 0 is Better):")
-        for i, (_, row) in enumerate(horizon_data_sorted.iterrows(), 1):
-            print(f"     {i}. {row['Model']}: ${row['Mean Error ($)']:,.0f}")
+        if 'Balanced Score' in horizon_data.columns:
+            horizon_data_sorted = horizon_data.sort_values('Balanced Score', ascending=False)
+            print(f"\n  📊 By Balanced Score (Higher is Better):")
+            for i, (_, row) in enumerate(horizon_data_sorted.iterrows(), 1):
+                print(f"     {i}. {row['Model']}: {row['Balanced Score']:.2f}")
 
 
 def print_best_model_summary(df):
@@ -268,11 +210,11 @@ def print_best_model_summary(df):
 
         print(f"\n{horizon.upper()} AHEAD:")
         print(f"  🏆 Best Overall (by MAPE): {best_mape['Model']}")
-        print(f"     MAPE: {best_mape['MAPE (%)']:.2f}%, R²: {best_mape['R²']:.4f}, Dir Acc: {best_mape['Directional Acc (%)']:.1f}%")
+        print(f"     MAPE: {best_mape['MAPE (%)']:.2f}%, R²: {best_mape['R²']:.4f}, Dir Acc: {best_mape['Directional Acc (%)']:.1f}%, Balanced Score: {best_mape['Balanced Score']:.2f}")
 
         if best_r2['Model'] != best_mape['Model']:
             print(f"  📊 Best R²: {best_r2['Model']}")
-            print(f"     MAPE: {best_r2['MAPE (%)']:.2f}%, R²: {best_r2['R²']:.4f}, Dir Acc: {best_r2['Directional Acc (%)']:.1f}%")
+            print(f"     MAPE: {best_r2['MAPE (%)']:.2f}%, R²: {best_r2['R²']:.4f}, Dir Acc: {best_r2['Directional Acc (%)']:.1f}%, Balanced Score: {best_r2['Balanced Score']:.2f}")
 
 
 def analyze_improvements(df):
@@ -328,7 +270,15 @@ if __name__ == "__main__":
 
     # Display full comparison table
     print(f"\n📊 Complete Results Table:")
-    print(all_results.to_string(index=False))
+    summary_cols = ['Model', 'Horizon', 'MAPE (%)', 'MAE ($)', 'Directional Acc (%)', 'R²', 'Balanced Score']
+    summary_cols = [col for col in summary_cols if col in all_results.columns]
+    display_df = all_results.copy()
+    for col in ['MAPE (%)', 'MAE ($)', 'Directional Acc (%)', 'Balanced Score']:
+        if col in display_df.columns:
+            display_df[col] = display_df[col].round(2)
+    if 'R²' in display_df.columns:
+        display_df['R²'] = display_df['R²'].round(4)
+    print(display_df[summary_cols].to_string(index=False))
 
     # Create visualizations
     print(f"\n📊 Creating comparison visualizations...")
@@ -354,9 +304,9 @@ if __name__ == "__main__":
     best_7d = all_results[all_results['Horizon'] == '7d'].loc[all_results[all_results['Horizon'] == '7d']['MAPE (%)'].idxmin()]
 
     print(f"\n✅ Best Models by Horizon:")
-    print(f"   1d: {best_1d['Model']} (MAPE: {best_1d['MAPE (%)']:.2f}%, R²: {best_1d['R²']:.4f})")
-    print(f"   3d: {best_3d['Model']} (MAPE: {best_3d['MAPE (%)']:.2f}%, R²: {best_3d['R²']:.4f})")
-    print(f"   7d: {best_7d['Model']} (MAPE: {best_7d['MAPE (%)']:.2f}%, R²: {best_7d['R²']:.4f})")
+    print(f"   1d: {best_1d['Model']} (MAPE: {best_1d['MAPE (%)']:.2f}%, R²: {best_1d['R²']:.4f}, Balanced Score: {best_1d['Balanced Score']:.2f})")
+    print(f"   3d: {best_3d['Model']} (MAPE: {best_3d['MAPE (%)']:.2f}%, R²: {best_3d['R²']:.4f}, Balanced Score: {best_3d['Balanced Score']:.2f})")
+    print(f"   7d: {best_7d['Model']} (MAPE: {best_7d['MAPE (%)']:.2f}%, R²: {best_7d['R²']:.4f}, Balanced Score: {best_7d['Balanced Score']:.2f})")
 
     print(f"\n✅ Success Criteria Check:")
     models_with_positive_r2_1d = all_results[(all_results['Horizon'] == '1d') & (all_results['R²'] > 0)]['Model'].tolist()

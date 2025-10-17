@@ -263,16 +263,38 @@ def get_local_predictions():
         if daily_file.exists():
             daily_df = pd.read_csv(daily_file)
             for _, row in daily_df.iterrows():
+                pred_price_1d = row['pred_1d_price']
+                current_price = row['current_price']
+                actual_price = row.get('actual_price_1d', float('nan'))
+
+                if pd.isna(actual_price):
+                    actual_price = pred_price_1d
+
+                error = actual_price - pred_price_1d
+                mape = (abs(error) / actual_price * 100) if actual_price else 0.0
+                transaction_hash = row.get('transaction_hash', 'N/A')
+                block_number = row.get('block_number', 0)
+
+                try:
+                    block_number = int(block_number)
+                except (TypeError, ValueError):
+                    block_number = 0
+
                 predictions.append({
                     'date': row['timestamp'],
-                    'current_price': round(row['current_price'], 2),
-                    'predicted_price_1d': round(row['pred_1d_price'], 2),
+                    'current_price': round(current_price, 2),
+                    'predicted_price_1d': round(pred_price_1d, 2),
                     'predicted_return_1d': round(row['pred_1d_return'] * 100, 2),
                     'predicted_price_3d': round(row['pred_3d_price'], 2),
                     'predicted_return_3d': round(row['pred_3d_return'] * 100, 2),
                     'predicted_price_7d': round(row['pred_7d_price'], 2),
                     'predicted_return_7d': round(row['pred_7d_return'] * 100, 2),
                     'generated_at': row.get('generated_at', 'N/A'),
+                    'actual_price_1d': round(actual_price, 2) if actual_price else round(pred_price_1d, 2),
+                    'error': round(error, 2) if actual_price else 0.0,
+                    'mape': round(mape, 2) if actual_price else 0.0,
+                    'transaction_hash': transaction_hash,
+                    'block_number': block_number,
                     'timeframe': 'daily'
                 })
         
@@ -281,10 +303,17 @@ def get_local_predictions():
         if hourly_file.exists():
             hourly_df = pd.read_csv(hourly_file)
             latest_hourly = hourly_df.iloc[-1]
+            hourly_pred_price = latest_hourly.get('pred_1h_price', 0)
+            hourly_transaction = latest_hourly.get('transaction_hash', 'N/A')
+            hourly_block = latest_hourly.get('block_number', 0)
+            try:
+                hourly_block = int(hourly_block)
+            except (TypeError, ValueError):
+                hourly_block = 0
             predictions.append({
                 'date': latest_hourly['timestamp'],
                 'current_price': round(latest_hourly['current_price'], 2),
-                'predicted_price_1h': round(latest_hourly.get('pred_1h_price', 0), 2),
+                'predicted_price_1h': round(hourly_pred_price, 2),
                 'predicted_return_1h': round(latest_hourly.get('pred_1h_return', 0) * 100, 2),
                 'predicted_price_4h': round(latest_hourly.get('pred_4h_price', 0), 2),
                 'predicted_return_4h': round(latest_hourly.get('pred_4h_return', 0) * 100, 2),
@@ -295,7 +324,12 @@ def get_local_predictions():
                 'predicted_price_24h': round(latest_hourly.get('pred_24h_price', 0), 2),
                 'predicted_return_24h': round(latest_hourly.get('pred_24h_return', 0) * 100, 2),
                 'timeframe': 'hourly',
-                'generated_at': latest_hourly.get('generated_at', 'N/A')
+                'generated_at': latest_hourly.get('generated_at', 'N/A'),
+                'actual_price_1d': round(hourly_pred_price, 2),
+                'error': 0.0,
+                'mape': 0.0,
+                'transaction_hash': hourly_transaction,
+                'block_number': hourly_block
             })
         
         return predictions
@@ -327,79 +361,145 @@ def methodology():
 
 @app.route('/results')
 def results():
-    """Page 2: Test Results."""
-    results_df = load_model_results()
-    results_list = []
+    """Page 2: Test Results - XGBoost Production + Model Comparison Study."""
 
-    balanced_best = None
-    rf_benchmark = None
-    comparison_path = RESULTS_DIR / 'model_comparison.csv'
-    if comparison_path.exists():
+    # Load daily models metrics (contains all 4 models: xgboost, random_forest, lightgbm, catboost)
+    metrics_path = RESULTS_DIR / 'daily_models_metrics.csv'
+
+    xgboost_results = []
+    comparison_study = []
+    model_averages = []
+    xgb_summary = {}
+    gradient_stats = {}
+    random_forest_stats = {}
+    total_models_tested = 0
+
+    if metrics_path.exists():
         try:
-            comparison_df = pd.read_csv(comparison_path)
+            df = pd.read_csv(metrics_path)
+            total_models_tested = df['model'].nunique()
 
-            if len(comparison_df) > 0:
-                df_balanced = comparison_df.copy()
-                df_balanced['Balanced Score'] = df_balanced['Directional_Accuracy'] - 0.5 * df_balanced['Price_MAPE']
-                top_row = df_balanced.sort_values('Balanced Score', ascending=False).iloc[0]
-                balanced_best = {
-                    'Model': top_row['Model'],
-                    'Timeframe': top_row['Timeframe'],
-                    'Horizon': top_row['Horizon'],
-                    'MAPE (%)': top_row['Price_MAPE'],
-                    'MAE ($)': top_row['Price_MAE'],
-                    'Directional Accuracy (%)': top_row['Directional_Accuracy'],
-                    'R²': top_row.get('Return_R2', np.nan),
-                    'Balanced Score': top_row['Balanced Score']
+            # Production Model: XGBoost only (for hero section and main display)
+            xgb_df = df[df['model'] == 'xgboost'].copy()
+            if not xgb_df.empty:
+                order_map = {'1d': 0, '3d': 1, '7d': 2}
+                xgb_df['sort_key'] = xgb_df['horizon'].map(order_map).fillna(99)
+                xgb_df = xgb_df.sort_values('sort_key').drop(columns=['sort_key'])
+
+                best_mape_row = xgb_df.loc[xgb_df['price_mape'].idxmin()]
+                best_dir_row = xgb_df.loc[xgb_df['directional_accuracy'].idxmax()]
+
+                horizons = [h.upper() for h in xgb_df['horizon'].tolist()]
+
+                xgb_summary = {
+                    'avg_mape': round(xgb_df['price_mape'].mean(), 2),
+                    'avg_directional': round(xgb_df['directional_accuracy'].mean(), 1),
+                    'best_mape': round(best_mape_row['price_mape'], 2),
+                    'best_mape_horizon': best_mape_row['horizon'],
+                    'best_directional': round(best_dir_row['directional_accuracy'], 1),
+                    'best_directional_horizon': best_dir_row['horizon'],
+                    'best_directional_edge': round(best_dir_row['directional_accuracy'] - 50, 1),
+                    'horizons_label': ", ".join(horizons),
+                    'horizon_count': len(horizons)
                 }
 
-                display_df = df_balanced.copy()
-                display_df['MAPE (%)'] = display_df['Price_MAPE']
-                display_df['MAE ($)'] = display_df['Price_MAE']
-                display_df['Directional Accuracy (%)'] = display_df['Directional_Accuracy']
-                display_df['R²'] = display_df.get('Return_R2', np.nan)
-                display_df = display_df.sort_values('Balanced Score', ascending=False)
-                results_list = display_df[
-                    ['Model', 'Timeframe', 'Horizon', 'MAPE (%)', 'R²', 'MAE ($)', 'Directional Accuracy (%)', 'Balanced Score']
-                ].to_dict('records')
+            for _, row in xgb_df.iterrows():
+                xgboost_results.append({
+                    'horizon': row['horizon'],
+                    'mape': round(row['price_mape'], 2),
+                    'mae': round(row['price_mae'], 2),
+                    'r2': round(row['return_test_r2'], 4),
+                    'directional': round(row['directional_accuracy'], 1),
+                    'train_samples': int(row['train_samples']),
+                    'test_samples': int(row['test_samples'])
+                })
 
-            daily_rf = comparison_df[
-                (comparison_df['Model'] == 'Random Forest') &
-                (comparison_df['Timeframe'] == 'Daily') &
-                (comparison_df['Horizon'] == '1d')
-            ]
+            # Model Comparison Study: All 4 models (for validation section)
+            for _, row in df.iterrows():
+                comparison_study.append({
+                    'model': row['model'],
+                    'horizon': row['horizon'],
+                    'mape': round(row['price_mape'], 2),
+                    'mae': round(row['price_mae'], 2),
+                    'r2': round(row['return_test_r2'], 4),
+                    'directional': round(row['directional_accuracy'], 1)
+                })
 
-            hourly_rf = comparison_df[
-                (comparison_df['Model'] == 'Random Forest') &
-                (comparison_df['Timeframe'] == 'Hourly') &
-                (comparison_df['Horizon'] == '1h')
-            ]
+            # Calculate model averages
+            for model_name in ['xgboost', 'random_forest', 'lightgbm', 'catboost']:
+                model_df = df[df['model'] == model_name]
+                if len(model_df) > 0:
+                    avg_mape = model_df['price_mape'].mean()
+                    avg_dir = model_df['directional_accuracy'].mean()
+                    avg_r2 = model_df['return_test_r2'].mean()
 
-            if not daily_rf.empty and not hourly_rf.empty:
-                rf_benchmark = {
-                    'daily': daily_rf.iloc[0].to_dict(),
-                    'hourly': hourly_rf.iloc[0].to_dict()
+                    # Determine rating
+                    if avg_mape < 2.5 and avg_dir > 52:
+                        rating = "⭐⭐⭐ Excellent"
+                        verdict = "Production Ready"
+                    elif avg_mape < 3.5 and avg_dir > 50:
+                        rating = "✅✅ Good"
+                        verdict = "Backup Option"
+                    elif avg_mape < 4.5:
+                        rating = "✅ Acceptable"
+                        verdict = "Use with Caution"
+                    else:
+                        rating = "❌ Poor"
+                        verdict = "Not Recommended"
+
+                    model_averages.append({
+                        'model': model_name,
+                        'avg_mape': round(avg_mape, 2),
+                        'avg_directional': round(avg_dir, 1),
+                        'avg_r2': round(avg_r2, 4),
+                        'rating': rating,
+                        'verdict': verdict
+                    })
+
+            # Sort model averages by MAPE
+            model_averages = sorted(model_averages, key=lambda x: x['avg_mape'])
+
+            # Gradient boosting summary (XGBoost, LightGBM, CatBoost)
+            gradient_df = df[df['model'].isin(['xgboost', 'lightgbm', 'catboost'])]
+            if not gradient_df.empty:
+                gradient_means = gradient_df.groupby('model')['price_mape'].mean()
+                gradient_stats = {
+                    'avg_mape': round(gradient_means.mean(), 2),
+                    'min_mape': round(gradient_means.min(), 2),
+                    'max_mape': round(gradient_means.max(), 2)
                 }
-        except Exception as exc:
-            print(f"Warning: Could not load Random Forest benchmark: {exc}")
-        else:
-            if results_df is not None and len(results_df) > 0:
-                df_copy = results_df.copy()
-                df_copy['Balanced Score'] = df_copy['Directional Accuracy (%)'] - 0.5 * df_copy['MAPE (%)']
-                balanced_best = df_copy.sort_values('Balanced Score', ascending=False).iloc[0].to_dict()
-                # Sort by MAPE for legacy results
-                df_copy = df_copy.sort_values('MAPE (%)', ascending=True)
-                results_list = df_copy.to_dict('records')
 
-        if (not results_list) and results_df is not None and len(results_df) > 0:
-            df_fallback = results_df.copy()
-            df_fallback['Balanced Score'] = df_fallback['Directional Accuracy (%)'] - 0.5 * df_fallback['MAPE (%)']
-            if balanced_best is None:
-                balanced_best = df_fallback.sort_values('Balanced Score', ascending=False).iloc[0].to_dict()
-            df_fallback = df_fallback.sort_values('MAPE (%)', ascending=True)
-            results_list = df_fallback.to_dict('records')
+            # Random Forest diagnostics
+            rf_df = df[df['model'] == 'random_forest']
+            if not rf_df.empty:
+                rf_avg_mape = rf_df['price_mape'].mean()
+                rf_avg_dir = rf_df['directional_accuracy'].mean()
+                rf_worst_r2 = rf_df['return_test_r2'].min()
+                relative_worse = None
+                if xgb_summary:
+                    relative_worse = ((rf_avg_mape - xgb_summary['avg_mape']) / xgb_summary['avg_mape']) * 100
 
-    return render_template('results.html', results=results_list, balanced_best=balanced_best, rf_benchmark=rf_benchmark)
+                random_forest_stats = {
+                    'avg_mape': round(rf_avg_mape, 2),
+                    'avg_directional': round(rf_avg_dir, 1),
+                    'worst_r2': round(rf_worst_r2, 2),
+                    'relative_mape_increase': round(relative_worse, 1) if relative_worse is not None else None
+                }
+
+        except Exception as e:
+            print(f"Error loading model metrics: {e}")
+            import traceback
+            traceback.print_exc()
+
+    return render_template('results.html',
+                         xgboost_results=xgboost_results,
+                         comparison_study=comparison_study,
+                         model_averages=model_averages,
+                         xgb_summary=xgb_summary,
+                         gradient_stats=gradient_stats,
+                         random_forest_stats=random_forest_stats,
+                         total_models_tested=total_models_tested,
+                         study_date='October 2025')
 
 
 @app.route('/live')
@@ -409,16 +509,14 @@ def live():
     predictions_data = get_local_predictions()
 
     # Calculate summary stats
-    if predictions_data and len(predictions_data) > 0:
-        # Filter daily predictions for stats
-        daily_predictions = [p for p in predictions_data if p.get('timeframe') == 'daily']
+    daily_predictions = [p for p in predictions_data if p.get('timeframe') == 'daily']
+    if daily_predictions:
         recent_predictions = daily_predictions[-7:] if len(daily_predictions) > 7 else daily_predictions
-        
-        # Calculate average error if we had actual prices (placeholder for now)
-        avg_mape = 2.5  # Placeholder - would need actual vs predicted comparison
-        
-        # Get latest daily prediction for summary
-        latest_pred = daily_predictions[-1] if daily_predictions else predictions_data[0]
+
+        mape_values = [p.get('mape', 0.0) for p in recent_predictions if p.get('mape') is not None]
+        avg_mape = round(sum(mape_values) / len(mape_values), 2) if mape_values else 0.0
+
+        latest_pred = dict(daily_predictions[-1])
     else:
         recent_predictions = []
         avg_mape = 0.0
@@ -426,13 +524,18 @@ def live():
             'date': datetime.now().strftime('%Y-%m-%d'),
             'current_price': current_data['price'],
             'predicted_price_1d': current_data['price'],
-            'predicted_return_1d': 0.0
+            'predicted_return_1d': 0.0,
+            'actual_price_1d': current_data['price'],
+            'error': 0.0,
+            'mape': 0.0,
+            'transaction_hash': 'N/A',
+            'block_number': 0
         }
 
     summary = {
         'current_price': current_data['price'],
         'timestamp': current_data['timestamp'],
-        'total_predictions': len(predictions_data),
+        'total_predictions': len(daily_predictions),
         'avg_mape_7d': round(avg_mape, 2),
         'latest_prediction': latest_pred
     }

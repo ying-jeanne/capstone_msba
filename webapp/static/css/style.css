@@ -1717,6 +1717,7 @@ footer {
     position: relative;
     background-size: cover;
     background-position: center;
+    background-image: url('../images/bitcoin3.jpg');
     padding: 2rem;
     border-radius: 12px;
     overflow: hidden;

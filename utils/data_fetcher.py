@@ -49,12 +49,24 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
     cache_path = Path(cache_dir)
     cache_path.mkdir(parents=True, exist_ok=True)
 
+    fetch_source = source
+    base_period = None
+    cutoff_days = None
+
     if source == 'yahoo':
         cache_file = cache_path / 'btc_yahoo_2y_daily.csv'  # Keep same name for compatibility
+        fetch_source = 'yahoo'
+        base_period = '2y'
+        cutoff_days = 730
     elif source == 'yahoo_5y':
-        cache_file = cache_path / 'btc_yahoo_5y_daily.csv'  # New: 5-year cache
+        cache_file = cache_path / 'btc_yahoo_5y_daily.csv'  # 5-year cache for daily training
+        fetch_source = 'yahoo'
+        base_period = '5y'
+        cutoff_days = 1825
     elif source == 'cryptocompare_1h':
-        cache_file = cache_path / 'btc_cryptocompare_365d_1hour.csv'
+        cache_file = cache_path / f'btc_cryptocompare_{days}d_1hour.csv'
+        fetch_source = 'cryptocompare_1h'
+        cutoff_days = days
     else:
         raise ValueError(f"Invalid source: {source}")
 
@@ -79,7 +91,23 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
             print(f"  Fetching last {days_to_fetch} days to update cache...")
 
         # Fetch new data (pass verbose to see fallback messages)
-        result = get_bitcoin_data(source=source, days=days_to_fetch, return_dict=True, verbose=verbose)
+        if fetch_source == 'yahoo':
+            period_arg = f"{max(days_to_fetch, 2)}d"
+            result = get_bitcoin_data(
+                source='yahoo',
+                period=period_arg,
+                interval='1d',
+                return_dict=True,
+                verbose=verbose
+            )
+        else:
+            fetch_days = max(2, min(days_to_fetch, days)) if days else max(2, days_to_fetch)
+            result = get_bitcoin_data(
+                source=fetch_source,
+                days=fetch_days,
+                return_dict=True,
+                verbose=verbose
+            )
 
         if result['status'] != 'success' or result['data'] is None:
             if verbose:
@@ -94,17 +122,9 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
         combined_df.sort_index(inplace=True)
 
         # Trim to desired length (keep last N days)
-        if source == 'yahoo':
-            # Keep 2 years for Yahoo
-            cutoff = datetime.now() - timedelta(days=730)
-        elif source == 'yahoo_5y':
-            # Keep 5 years for Yahoo 5y
-            cutoff = datetime.now() - timedelta(days=1825)  # 5 * 365
-        elif source == 'cryptocompare_1h':
-            # Keep 365 days for hourly
-            cutoff = datetime.now() - timedelta(days=365)
-
-        combined_df = combined_df[combined_df.index >= cutoff]
+        if cutoff_days:
+            cutoff = datetime.now() - timedelta(days=cutoff_days)
+            combined_df = combined_df[combined_df.index >= cutoff]
 
         # Save updated cache
         combined_df.to_csv(cache_file)
@@ -121,15 +141,23 @@ def get_bitcoin_data_incremental(source='cryptocompare_1h', days=365, cache_dir=
         if verbose:
             print(f"  No cache found, fetching full history...")
 
-        # Determine period for Yahoo Finance
-        if source == 'yahoo':
-            period = '2y'
-        elif source == 'yahoo_5y':
-            period = '5y'
+        # Determine fetch parameters for initial download
+        if fetch_source == 'yahoo':
+            period_arg = base_period or '2y'
+            result = get_bitcoin_data(
+                source='yahoo',
+                period=period_arg,
+                interval='1d',
+                return_dict=True,
+                verbose=verbose
+            )
         else:
-            period = None
-
-        result = get_bitcoin_data(source=source.replace('_5y', ''), days=days, period=period, return_dict=True, verbose=verbose)
+            result = get_bitcoin_data(
+                source=fetch_source,
+                days=days,
+                return_dict=True,
+                verbose=verbose
+            )
 
         if result['status'] != 'success' or result['data'] is None:
             if verbose:
@@ -652,7 +680,6 @@ def get_fear_greed_index(limit=730, verbose=False):
         if verbose:
             print(f"   ❌ Error: {e}")
         return None
-
 
 def get_all_sources(days=365, yahoo_period='2y', save_to_disk=False):
     """

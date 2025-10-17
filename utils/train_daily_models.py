@@ -1,13 +1,17 @@
 """
 Train Daily Bitcoin Prediction Models
 ======================================
-Trains XGBoost models for daily predictions (1d, 3d, 7d)
-Uses Yahoo Finance 2-year daily data
+Trains multiple models for daily predictions (1d, 3d, 7d)
+Uses Yahoo Finance 5-year daily data (OPTIMAL - see 10Y_VS_5Y_COMPARISON.md)
+
+Models trained:
+- XGBoost (gradient boosting)
+- Random Forest (ensemble of decision trees)
+- LightGBM (fast gradient boosting)
+- CatBoost (categorical boosting)
 
 Output:
-- models/saved_models/daily/xgboost_1d.json
-- models/saved_models/daily/xgboost_3d.json
-- models/saved_models/daily/xgboost_7d.json
+- models/saved_models/daily/{model}_{horizon}.{ext}
 - models/saved_models/daily/scaler_daily.pkl
 - models/saved_models/daily/feature_cols_daily.pkl
 """
@@ -15,6 +19,7 @@ Output:
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import RobustScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, r2_score
@@ -22,11 +27,25 @@ from pathlib import Path
 import joblib
 import sys
 
+# Try importing optional models
+try:
+    import lightgbm as lgb
+    LIGHTGBM_AVAILABLE = True
+except ImportError:
+    LIGHTGBM_AVAILABLE = False
+    print("⚠️  LightGBM not installed. Install with: pip install lightgbm")
+
+try:
+    from catboost import CatBoostRegressor
+    CATBOOST_AVAILABLE = True
+except ImportError:
+    CATBOOST_AVAILABLE = False
+    print("⚠️  CatBoost not installed. Install with: pip install catboost")
+
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.feature_engineering import engineer_technical_features, add_sentiment_features
-
 
 def calculate_metrics(y_true, y_pred):
     """
@@ -46,7 +65,6 @@ def calculate_metrics(y_true, y_pred):
         'R2': r2,
         'Directional_Accuracy': directional_acc
     }
-
 
 def prepare_data_for_horizon(df, horizon_days=1):
     """
@@ -84,18 +102,105 @@ def prepare_data_for_horizon(df, horizon_days=1):
     return X_scaled, y, feature_cols, scaler, current_prices
 
 
-def train_model_for_horizon(X, y, horizon_days, current_prices):
+def get_model_configs():
     """
-    Train XGBoost model for specific horizon
-    
+    Get configuration for all available models
+
+    Returns:
+        dict: {model_name: (model_class, params, file_ext)}
+    """
+    configs = {}
+
+    # XGBoost (always available)
+    configs['xgboost'] = (
+        xgb.XGBRegressor,
+        {
+            'objective': 'reg:squarederror',
+            'max_depth': 4,
+            'learning_rate': 0.05,
+            'n_estimators': 200,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8,
+            'min_child_weight': 3,
+            'gamma': 0.3,
+            'reg_alpha': 0.5,
+            'reg_lambda': 2.0,
+            'random_state': 42,
+            'n_jobs': -1,
+            'early_stopping_rounds': 20
+        },
+        'json'
+    )
+
+    # Random Forest (scikit-learn, always available)
+    configs['random_forest'] = (
+        RandomForestRegressor,
+        {
+            'n_estimators': 200,
+            'max_depth': 10,
+            'min_samples_split': 10,
+            'min_samples_leaf': 5,
+            'max_features': 'sqrt',
+            'random_state': 42,
+            'n_jobs': -1
+        },
+        'pkl'
+    )
+
+    # LightGBM (if available)
+    if LIGHTGBM_AVAILABLE:
+        configs['lightgbm'] = (
+            lgb.LGBMRegressor,
+            {
+                'objective': 'regression',
+                'max_depth': 4,
+                'learning_rate': 0.05,
+                'n_estimators': 200,
+                'subsample': 0.8,
+                'colsample_bytree': 0.8,
+                'min_child_weight': 3,
+                'reg_alpha': 0.5,
+                'reg_lambda': 2.0,
+                'random_state': 42,
+                'n_jobs': -1,
+                'verbosity': -1,
+                'force_col_wise': True
+            },
+            'txt'
+        )
+
+    # CatBoost (if available)
+    if CATBOOST_AVAILABLE:
+        configs['catboost'] = (
+            CatBoostRegressor,
+            {
+                'depth': 4,
+                'learning_rate': 0.05,
+                'iterations': 200,
+                'subsample': 0.8,
+                'random_state': 42,
+                'verbose': False,
+                'early_stopping_rounds': 20
+            },
+            'cbm'
+        )
+
+    return configs
+
+
+def train_model_for_horizon(X, y, horizon_days, current_prices, model_name='xgboost'):
+    """
+    Train a specific model for a given horizon
+
     Args:
         X: Features
         y: Return targets
         horizon_days: Prediction horizon
         current_prices: Current prices for evaluation
-    
+        model_name: Model to train ('xgboost', 'random_forest', 'lightgbm', 'catboost')
+
     Returns:
-        model, metrics
+        model, metrics, file_ext
     """
     # Train/val/test split (70/15/15, chronological)
     # More training data helps with Bitcoin's high noise
@@ -112,40 +217,45 @@ def train_model_for_horizon(X, y, horizon_days, current_prices):
 
     prices_val = current_prices[split_1:split_2]
     prices_test = current_prices[split_2:]
-    
-    # XGBoost parameters (with stronger regularization to prevent overfitting)
-    params = {
-        'objective': 'reg:squarederror',
-        'max_depth': 4,              # Reduced from 5 (less complex trees)
-        'learning_rate': 0.05,
-        'n_estimators': 200,          # Reduced from 300 (fewer trees)
-        'subsample': 0.8,
-        'colsample_bytree': 0.8,
-        'min_child_weight': 3,
-        'gamma': 0.3,                 # Increased from 0.1 (stronger pruning)
-        'reg_alpha': 0.5,             # Increased from 0.1 (stronger L1)
-        'reg_lambda': 2.0,            # Increased from 1.0 (stronger L2)
-        'random_state': 42,
-        'n_jobs': -1
-    }
-    
+
+    # Get model configuration
+    configs = get_model_configs()
+    if model_name not in configs:
+        raise ValueError(f"Unknown model: {model_name}. Available: {list(configs.keys())}")
+
+    model_class, params, file_ext = configs[model_name]
+
     # Train model
     print(f"\n{'='*60}")
-    print(f"Training XGBoost for {horizon_days}-day prediction")
+    print(f"Training {model_name.upper()} for {horizon_days}-day prediction")
     print(f"{'='*60}")
     print(f"Training samples: {len(X_train)}")
     print(f"Validation samples: {len(X_val)}")
     print(f"Test samples: {len(X_test)}")
 
-    # XGBoost 3.0+ uses early_stopping_rounds in params, not fit()
-    params['early_stopping_rounds'] = 20
+    model = model_class(**params)
 
-    model = xgb.XGBRegressor(**params)
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_val, y_val)],
-        verbose=False
-    )
+    # Train based on model type
+    if model_name == 'xgboost':
+        model.fit(
+            X_train, y_train,
+            eval_set=[(X_val, y_val)],
+            verbose=False
+        )
+    elif model_name == 'lightgbm':
+        model.fit(
+            X_train, y_train,
+            eval_set=[(X_val, y_val)],
+            callbacks=[lgb.early_stopping(stopping_rounds=20, verbose=False), lgb.log_evaluation(period=0)]
+        )
+    elif model_name == 'catboost':
+        model.fit(
+            X_train, y_train,
+            eval_set=(X_val, y_val),
+            verbose=False
+        )
+    else:  # Random Forest and others
+        model.fit(X_train, y_train)
 
     # Predictions
     y_pred_train = model.predict(X_train)
@@ -220,6 +330,7 @@ def train_model_for_horizon(X, y, horizon_days, current_prices):
     
     # Store comprehensive metrics
     metrics = {
+        'model': model_name,
         'horizon': f'{horizon_days}d',
         'train_samples': len(X_train),
         'test_samples': len(X_test),
@@ -230,8 +341,8 @@ def train_model_for_horizon(X, y, horizon_days, current_prices):
         'price_mae': price_mae,
         'price_mape': price_mape
     }
-    
-    return model, metrics
+
+    return model, metrics, file_ext
 
 
 def main():
@@ -247,54 +358,67 @@ def main():
     # Step 1: Load cached data (training should NOT fetch fresh data)
     print("\n[STEP 1] Loading cached Yahoo Finance data...")
 
-    # Try 5-year cache first, fallback to 2-year
-    data_path_5y = Path('data/raw/btc_yahoo_5y_daily.csv')
-    data_path_2y = Path('data/raw/btc_yahoo_2y_daily.csv')
+    # Use 5-year data cache (best performance per 10Y_VS_5Y_COMPARISON.md)
+    data_path = Path('data/raw/btc_yahoo_5y_daily.csv')
 
-    if data_path_5y.exists():
-        data_path = data_path_5y
-        print(f"✓ Using 5-year data cache")
-    elif data_path_2y.exists():
-        data_path = data_path_2y
-        print(f"⚠️  Using 2-year data cache (consider fetching 5-year data)")
-    else:
+    if not data_path.exists():
         print(f"❌ Error: No cached data found")
-        print(f"   Expected: {data_path_5y} or {data_path_2y}")
+        print(f"   Expected: {data_path}")
         print("   Please run: python run_full_pipeline.py")
         sys.exit(1)
 
     df = pd.read_csv(data_path, index_col=0, parse_dates=True)
     print(f"✓ Loaded {len(df)} daily bars from {data_path.name}")
     print(f"  Date range: {df.index[0].date()} to {df.index[-1].date()}")
-    
-    # Step 2: Engineer features
-    print("\n[STEP 2] Engineering features...")
+
+    # Step 2: Engineer features (technical only, no sentiment)
+    print("\n[STEP 2] Engineering technical features...")
     df = engineer_technical_features(df)
     print(f"✓ Created {len(df.columns)} technical features")
-    
-    # Step 2b: Add sentiment features
-    print("\n[STEP 2b] Adding sentiment features...")
+    print(f"  Note: Using 5-year data to prioritize recent market structure")
+
+    # Add sentiment features (Fear & Greed Index)
     df = add_sentiment_features(df)
-    print(f"✓ Total features (technical + sentiment): {len(df.columns)}")
     
-    # Step 3: Train models for each horizon
+    # Step 3: Train models for each horizon and model type
     horizons = [1, 3, 7]
     all_metrics = []
-    
+
+    # Get available models
+    available_models = list(get_model_configs().keys())
+    print(f"\n📊 Training {len(available_models)} model types: {', '.join(available_models)}")
+
     for horizon in horizons:
-        print(f"\n[STEP 3.{horizon}] Training {horizon}-day model...")
-        
-        # Prepare data
+        print(f"\n{'='*70}")
+        print(f"  HORIZON: {horizon}-DAY PREDICTIONS")
+        print(f"{'='*70}")
+
+        # Prepare data (same for all models)
         X, y, feature_cols, scaler, current_prices = prepare_data_for_horizon(df, horizon_days=horizon)
-        
-        # Train model
-        model, metrics = train_model_for_horizon(X, y, horizon, current_prices)
-        all_metrics.append(metrics)
-        
-        # Save model
-        model_path = models_dir / f'xgboost_{horizon}d.json'
-        model.save_model(str(model_path))
-        print(f"✓ Saved model to {model_path}")
+
+        # Train each model type
+        for model_name in available_models:
+            print(f"\n[STEP 3.{horizon}.{model_name}] Training {model_name} for {horizon}-day...")
+
+            # Train model
+            model, metrics, file_ext = train_model_for_horizon(X, y, horizon, current_prices, model_name)
+            all_metrics.append(metrics)
+
+            # Save model
+            if model_name == 'xgboost':
+                model_path = models_dir / f'{model_name}_{horizon}d.{file_ext}'
+                model.save_model(str(model_path))
+            elif model_name == 'lightgbm':
+                model_path = models_dir / f'{model_name}_{horizon}d.{file_ext}'
+                model.booster_.save_model(str(model_path))
+            elif model_name == 'catboost':
+                model_path = models_dir / f'{model_name}_{horizon}d.{file_ext}'
+                model.save_model(str(model_path))
+            else:  # Random Forest and others - use joblib
+                model_path = models_dir / f'{model_name}_{horizon}d.{file_ext}'
+                joblib.dump(model, model_path)
+
+            print(f"✓ Saved {model_name} model to {model_path}")
     
     # Step 4: Save scaler and feature columns (same for all horizons)
     print("\n[STEP 4] Saving preprocessing objects...")
@@ -318,10 +442,10 @@ def main():
 
     metrics_df = pd.DataFrame(all_metrics)
 
-    # Display compact summary
+    # Display compact summary by model and horizon
     print("\n📊 Performance Overview:")
-    print(f"{'Horizon':<10} {'Price MAPE':<12} {'Directional':<15} {'Quality':<20}")
-    print("-" * 70)
+    print(f"{'Model':<15} {'Horizon':<10} {'Price MAPE':<12} {'Directional':<15} {'Quality':<20}")
+    print("-" * 80)
     for _, row in metrics_df.iterrows():
         # Quality assessment
         if row['price_mape'] < 2:
@@ -340,7 +464,17 @@ def main():
         else:
             dir_symbol = "❌"
 
-        print(f"{row['horizon']:<10} {row['price_mape']:>6.2f}%      {dir_symbol} {dir_acc:>5.1f}%      {quality}")
+        print(f"{row['model']:<15} {row['horizon']:<10} {row['price_mape']:>6.2f}%      {dir_symbol} {dir_acc:>5.1f}%      {quality}")
+
+    # Show best models per horizon
+    print("\n🏆 Best Models by Horizon:")
+    for horizon in ['1d', '3d', '7d']:
+        horizon_df = metrics_df[metrics_df['horizon'] == horizon]
+        best_mape = horizon_df.loc[horizon_df['price_mape'].idxmin()]
+        best_dir = horizon_df.loc[horizon_df['directional_accuracy'].idxmax()]
+        print(f"  {horizon}:")
+        print(f"    • Best MAPE: {best_mape['model']} ({best_mape['price_mape']:.2f}%)")
+        print(f"    • Best Directional: {best_dir['model']} ({best_dir['directional_accuracy']:.1f}%)")
 
     print("\n💡 Interpretation Guide:")
     print("  • Price MAPE: Lower is better (<2% excellent, <5% good)")
