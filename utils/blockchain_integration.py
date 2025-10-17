@@ -15,15 +15,25 @@ Date: October 2025
 """
 
 import os
-from web3 import Web3
 from datetime import datetime
 from pathlib import Path
-from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
 
-# Load environment variables
-load_dotenv()
+# Try to import optional dependencies
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("⚠️  python-dotenv not installed, using environment variables only")
+
+try:
+    from web3 import Web3
+    WEB3_AVAILABLE = True
+except ImportError:
+    print("⚠️  web3 not installed. Blockchain write operations will not work.")
+    WEB3_AVAILABLE = False
+    Web3 = None
 
 # ============================================================================
 # CONFIGURATION
@@ -31,11 +41,18 @@ load_dotenv()
 
 # Moonbase Alpha Configuration
 MOONBASE_RPC_URL = os.getenv('MOONBASE_RPC_URL', 'https://rpc.api.moonbase.moonbeam.network')
-CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS', None)
-PRIVATE_KEY = os.getenv('MOONBASE_PRIVATE_KEY', None)
+CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS', '0x93b879c3b24AC7532Fd64C7F203D64Ab668bB42E')  # Default to deployed contract
+PRIVATE_KEY = os.getenv('MOONBASE_PRIVATE_KEY', None)  # Only needed for writing to blockchain
 
-# Connect to Moonbase Alpha
-w3 = Web3(Web3.HTTPProvider(MOONBASE_RPC_URL))
+# Connect to Moonbase Alpha (only if web3 is available)
+if WEB3_AVAILABLE:
+    try:
+        w3 = Web3(Web3.HTTPProvider(MOONBASE_RPC_URL))
+    except Exception as e:
+        print(f"⚠️  Could not connect to Moonbase: {e}")
+        w3 = None
+else:
+    w3 = None
 
 # Smart Contract ABI (from Remix deployment - verified)
 CONTRACT_ABI = [
@@ -273,6 +290,9 @@ def store_prediction_onchain(
             'gas_used': Gas used for transaction
         }
     """
+    if not WEB3_AVAILABLE or w3 is None:
+        raise RuntimeError("Web3 is not available. Please install web3 package: pip install web3")
+    
     print(f"\n📤 Storing prediction on Moonbase Alpha...")
     print(f"   Predicted 1d: ${predicted_1d:,.2f}")
     print(f"   Predicted 3d: ${predicted_3d:,.2f}")

@@ -25,11 +25,34 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.data_fetcher import get_latest_price
 from utils.prediction_loader import PredictionLoader
-from utils.blockchain_integration import (
-    get_predictions_with_outcomes,
-    get_performance_summary,
-    CONTRACT_ADDRESS
-)
+
+# Try to import blockchain functions, but continue if they fail
+try:
+    from utils.blockchain_integration import (
+        get_predictions_with_outcomes,
+        get_performance_summary,
+        CONTRACT_ADDRESS
+    )
+    BLOCKCHAIN_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️  Blockchain integration not available: {e}")
+    BLOCKCHAIN_AVAILABLE = False
+    CONTRACT_ADDRESS = "0x93b879c3b24AC7532Fd64C7F203D64Ab668bB42E"
+    
+    # Fallback functions
+    def get_predictions_with_outcomes(count=30, use_demo=True, use_github=True):
+        return []
+    
+    def get_performance_summary(use_demo=True, use_github=True):
+        return {
+            'total_predictions': 0,
+            'avg_mape_1d': 0,
+            'avg_mape_3d': 0,
+            'avg_mape_7d': 0,
+            'directional_accuracy_1d': 0,
+            'directional_accuracy_3d': 0,
+            'directional_accuracy_7d': 0
+        }
 
 app = Flask(__name__)
 
@@ -543,22 +566,29 @@ def live():
         # Get current price
         current_data = get_live_data()
 
-        # Get blockchain predictions with outcomes
-        blockchain_predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
-
-        # Get performance summary
-        summary = get_performance_summary(use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
-
-        # Add current price and timestamp to summary
-        summary['current_price'] = current_data['price']
-        summary['timestamp'] = current_data['timestamp']
+        # Get blockchain predictions with outcomes (only if available)
+        blockchain_predictions = []
+        summary = {
+            'current_price': current_data['price'],
+            'timestamp': current_data['timestamp'],
+            'total_predictions': 0,
+            'avg_mape_1d': 0,
+            'directional_accuracy_1d': 0
+        }
+        
+        if BLOCKCHAIN_AVAILABLE:
+            blockchain_predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
+            summary = get_performance_summary(use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
+            summary['current_price'] = current_data['price']
+            summary['timestamp'] = current_data['timestamp']
 
         return render_template(
             'live.html',
             blockchain_predictions=blockchain_predictions,
             summary=summary,
             demo_mode=USE_DEMO_DATA,
-            contract_address=CONTRACT_ADDRESS
+            contract_address=CONTRACT_ADDRESS,
+            blockchain_available=BLOCKCHAIN_AVAILABLE
         )
     except Exception as e:
         # Fallback to empty data on error
@@ -617,6 +647,12 @@ def api_all_predictions():
 def api_blockchain_predictions():
     """Get blockchain predictions with actual outcomes."""
     try:
+        if not BLOCKCHAIN_AVAILABLE:
+            return jsonify({
+                'status': 'error',
+                'message': 'Blockchain integration not available. Please install web3 package.'
+            }), 503
+        
         predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
         summary = get_performance_summary(use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
         

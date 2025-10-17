@@ -1,0 +1,19 @@
+# Minimal dependencies for Flask webapp only
+# Install with: pip install -r requirements_webapp.txt
+
+# Web Framework
+flask
+
+# Data handling
+pandas
+numpy
+
+# Blockchain integration (read-only)
+web3
+
+# Data fetching for live prices
+yfinance
+requests
+
+# Environment variables
+python-dotenv
