@@ -36,6 +36,7 @@ app = Flask(__name__)
 # Configuration
 RESULTS_DIR = Path(__file__).parent.parent / 'results'
 USE_DEMO_DATA = True  # Set to False when using real blockchain data
+USE_GITHUB = True  # Set to True to fetch from GitHub (for PythonAnywhere), False for local development
 
 # Initialize prediction loader (fetches from GitHub with caching)
 prediction_loader = PredictionLoader()
@@ -248,11 +249,32 @@ def get_live_data():
                 'timestamp': result['timestamp'],
                 'source': result['source']
             }
-    except:
-        pass
-    # Mock data if API fails
+        else:
+            print(f"⚠️  get_latest_price() returned error: {result.get('message')}")
+    except Exception as e:
+        print(f"⚠️  Exception in get_live_data(): {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    # Fallback: Try to get latest from CSV as backup
+    try:
+        csv_path = Path(__file__).parent.parent / 'data' / 'predictions' / 'daily_predictions.csv'
+        if csv_path.exists():
+            df = pd.read_csv(csv_path)
+            if len(df) > 0:
+                latest = df.iloc[-1]
+                return {
+                    'price': latest['current_price'],
+                    'timestamp': latest['timestamp'],
+                    'source': 'csv_backup'
+                }
+    except Exception as e:
+        print(f"⚠️  CSV backup failed: {str(e)}")
+    
+    # Last resort mock data
+    print("⚠️  WARNING: Using outdated mock price!")
     return {
-        'price': 67850.23,
+        'price': 104886.59,  # Updated to recent price
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'source': 'mock'
     }
@@ -522,10 +544,10 @@ def live():
         current_data = get_live_data()
 
         # Get blockchain predictions with outcomes
-        blockchain_predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA)
+        blockchain_predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
 
         # Get performance summary
-        summary = get_performance_summary(use_demo=USE_DEMO_DATA)
+        summary = get_performance_summary(use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
 
         # Add current price and timestamp to summary
         summary['current_price'] = current_data['price']
@@ -595,8 +617,8 @@ def api_all_predictions():
 def api_blockchain_predictions():
     """Get blockchain predictions with actual outcomes."""
     try:
-        predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA)
-        summary = get_performance_summary(use_demo=USE_DEMO_DATA)
+        predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
+        summary = get_performance_summary(use_demo=USE_DEMO_DATA, use_github=USE_GITHUB)
         
         # Clean NaN values - replace with None (null in JSON)
         def clean_nan(obj):

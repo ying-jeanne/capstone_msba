@@ -415,30 +415,58 @@ def get_contract_stats() -> dict:
 # DEMO MODE FUNCTIONS
 # ============================================================================
 
-def get_predictions_with_outcomes(count=30, use_demo=True) -> list:
+def get_predictions_with_outcomes(count=30, use_demo=True, use_github=True) -> list:
     """
     Load predictions with outcomes from CSV
 
     Args:
         count: Number of recent predictions to fetch
         use_demo: If True, load from demo CSV. If False, load from real blockchain CSV
+        use_github: If True, fetch from GitHub. If False, use local files
 
     Returns:
         list: List of prediction dicts with outcomes
     """
-    # Determine which CSV to load
-    if use_demo:
-        csv_path = Path(__file__).parent.parent / 'data' / 'blockchain' / 'prediction_tracking_demo.csv'
-    else:
-        csv_path = Path(__file__).parent.parent / 'data' / 'blockchain' / 'prediction_tracking.csv'
+    
+    if use_github:
+        # Fetch from GitHub raw URL
+        github_user = "ying-jeanne"  # Your GitHub username
+        github_repo = "capstone_msba"  # Your repo name
+        branch = "main"
+        
+        if use_demo:
+            csv_filename = "prediction_tracking_demo.csv"
+        else:
+            csv_filename = "prediction_tracking.csv"
+        
+        github_url = f"https://raw.githubusercontent.com/{github_user}/{github_repo}/{branch}/data/blockchain/{csv_filename}"
+        
+        print(f"📥 Fetching predictions from GitHub: {csv_filename}")
+        
+        try:
+            # Fetch CSV from GitHub
+            df = pd.read_csv(github_url)
+            print(f"✓ Loaded {len(df)} predictions from GitHub")
+        except Exception as e:
+            print(f"⚠️  Failed to fetch from GitHub: {str(e)}")
+            print(f"   Falling back to local file...")
+            use_github = False  # Fall back to local
+    
+    if not use_github:
+        # Load from local file (fallback)
+        if use_demo:
+            csv_path = Path(__file__).parent.parent / 'data' / 'blockchain' / 'prediction_tracking_demo.csv'
+        else:
+            csv_path = Path(__file__).parent.parent / 'data' / 'blockchain' / 'prediction_tracking.csv'
 
-    # Check if file exists
-    if not csv_path.exists():
-        print(f"⚠️  CSV file not found: {csv_path}")
-        return []
+        # Check if file exists
+        if not csv_path.exists():
+            print(f"⚠️  CSV file not found: {csv_path}")
+            return []
 
-    # Load CSV
-    df = pd.read_csv(csv_path)
+        # Load CSV
+        df = pd.read_csv(csv_path)
+        print(f"✓ Loaded {len(df)} predictions from local file")
 
     # Truncate prediction prices to match blockchain storage (cents conversion)
     # This ensures UI displays match what's stored on-chain
@@ -458,12 +486,13 @@ def get_predictions_with_outcomes(count=30, use_demo=True) -> list:
     return recent.to_dict('records')
 
 
-def get_performance_summary(use_demo=True) -> dict:
+def get_performance_summary(use_demo=True, use_github=True) -> dict:
     """
     Calculate aggregate performance metrics
 
     Args:
         use_demo: If True, use demo data. If False, use real blockchain data
+        use_github: If True, fetch from GitHub. If False, use local files
 
     Returns:
         dict: Performance summary statistics
@@ -471,7 +500,7 @@ def get_performance_summary(use_demo=True) -> dict:
     import numpy as np
 
     # Get all predictions
-    preds = get_predictions_with_outcomes(count=1000, use_demo=use_demo)
+    preds = get_predictions_with_outcomes(count=1000, use_demo=use_demo, use_github=use_github)
 
     if not preds:
         return {
