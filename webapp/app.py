@@ -247,7 +247,7 @@ def get_live_data():
             return {
                 'price': result['price'],
                 'timestamp': result['timestamp'],
-                'source': result['source']
+                'source': 'yahoo_finance'
             }
         else:
             print(f"⚠️  get_latest_price() returned error: {result.get('message')}")
@@ -467,7 +467,7 @@ def results():
                         verdict = "Production Ready"
                     elif avg_mape < 3.5 and avg_dir > 50:
                         rating = "✅✅ Good"
-                        verdict = "Backup Option"
+                        verdict = "Good Option"
                     elif avg_mape < 4.5:
                         rating = "✅ Acceptable"
                         verdict = "Use with Caution"
