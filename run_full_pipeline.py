@@ -21,6 +21,7 @@ import subprocess
 from datetime import datetime
 
 # Import data fetcher functions
+from utils.data_fetcher import get_bitcoin_data_incremental
 
 # Color codes for terminal output
 class Colors:
@@ -118,7 +119,6 @@ def main():
     print_step(1, "FETCH LATEST DATA (Incremental)")
     print("   This will update cached Bitcoin data with only new bars since last fetch.")
     print("   - Yahoo Finance: 5 years daily (incremental)")
-    print("   - Cryptocompare: 365 days hourly (incremental)")
     try:
         # Fetch Yahoo 5-year data incrementally
         print("\n📊 Fetching Yahoo Finance daily data (5 years)...")
@@ -129,14 +129,6 @@ def main():
             completed_steps.append("Yahoo Data Fetch")
         else:
             print_warning("Yahoo data fetch failed, using cached data if available")
-
-
-        if yahoo_df is not None:
-            print_success(f"Data fetching completed (incremental)")
-            if "Yahoo Data Fetch" not in completed_steps and "Crypto Data Fetch" not in completed_steps:
-                completed_steps.append("Data Fetching")
-        else:
-            print_warning("All data sources failed, but continuing with existing cached data...")
 
     except Exception as e:
         print_error(f"Data fetching error: {str(e)}")
