@@ -19,6 +19,8 @@ from web3 import Web3
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+import pandas as pd
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -225,7 +227,6 @@ def get_account():
     account = w3.eth.account.from_key(PRIVATE_KEY)
     return account
 
-
 def price_to_cents(price: float) -> int:
     """Convert price in dollars to cents (for Solidity uint256)"""
     return int(price * 100)
@@ -425,9 +426,6 @@ def get_predictions_with_outcomes(count=30, use_demo=True) -> list:
     Returns:
         list: List of prediction dicts with outcomes
     """
-    import pandas as pd
-    from pathlib import Path
-
     # Determine which CSV to load
     if use_demo:
         csv_path = Path(__file__).parent.parent / 'data' / 'blockchain' / 'prediction_tracking_demo.csv'
@@ -441,6 +439,12 @@ def get_predictions_with_outcomes(count=30, use_demo=True) -> list:
 
     # Load CSV
     df = pd.read_csv(csv_path)
+
+    # Truncate prediction prices to match blockchain storage (cents conversion)
+    # This ensures UI displays match what's stored on-chain
+    for col in ['pred_1d', 'pred_3d', 'pred_7d']:
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: int(x * 100) / 100 if pd.notna(x) else x)
 
     # Add Moonscan URLs
     df['moonscan_url'] = df['tx_hash'].apply(

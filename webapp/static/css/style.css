@@ -1959,3 +1959,266 @@ footer {
         flex-direction: column;
     }
 }
+
+/* ========================================================================
+   Live Page - Blockchain Predictions Styling
+   ======================================================================== */
+
+/* Demo Mode Banner */
+.demo-banner {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 2px solid #ffc107;
+    padding: 1.2rem 1.5rem;
+    margin: 2rem 0;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #856404;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+}
+
+/* Live Price Card */
+.live-status-section {
+    margin: 2rem 0;
+}
+
+.live-price-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.price-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.price-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.price-value {
+    font-size: 3rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.price-timestamp {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Performance Summary Cards */
+.performance-summary {
+    margin: 3rem 0;
+}
+
+.status-good {
+    color: var(--success-color);
+}
+
+.status-ok {
+    color: #ff9800;
+}
+
+.status-poor {
+    color: var(--error-color);
+}
+
+/* Blockchain Predictions Table */
+.table-container {
+    overflow-x: auto;
+    margin: 2rem 0;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.predictions-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.95rem;
+}
+
+.predictions-table thead {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+}
+
+.predictions-table th {
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.predictions-table td {
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.predictions-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.predictions-table tbody tr:hover {
+    background: #f5f5f5;
+}
+
+/* Row Status Colors */
+.predictions-table tr.success {
+    background: linear-gradient(90deg, #d4edda 0%, #f8fdf9 100%);
+}
+
+.predictions-table tr.warning {
+    background: linear-gradient(90deg, #fff3cd 0%, #fffef9 100%);
+}
+
+.predictions-table tr.error {
+    background: linear-gradient(90deg, #f8d7da 0%, #fef8f9 100%);
+}
+
+.predictions-table tr.pending {
+    background: linear-gradient(90deg, #e2e3e5 0%, #f8f9fa 100%);
+}
+
+.predictions-table tr.subrow {
+    opacity: 0.85;
+    font-size: 0.9rem;
+}
+
+/* Table Cell Styling */
+.predictions-table .horizon {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.predictions-table .pending {
+    color: #999;
+    font-style: italic;
+}
+
+/* Direction Indicators */
+.direction {
+    text-align: center;
+}
+
+.direction .correct {
+    color: var(--success-color);
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.direction .incorrect {
+    color: var(--error-color);
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+/* TX Hash Links */
+.tx-hash {
+    font-family: 'Courier New', monospace;
+}
+
+.tx-hash a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.tx-hash a:hover {
+    color: #1565c0;
+    text-decoration: underline;
+}
+
+/* Chart Section */
+.chart-section {
+    background: white;
+    padding: 2.5rem;
+    margin: 3rem 0;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.chart-section h2 {
+    margin-bottom: 2rem;
+}
+
+.chart-section canvas {
+    max-height: 400px;
+}
+
+/* Blockchain Info Panel */
+.blockchain-info {
+    margin: 3rem 0;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.info-card {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.info-value a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.info-value a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive adjustments for live page */
+@media (max-width: 768px) {
+    .predictions-table {
+        font-size: 0.85rem;
+    }
+
+    .predictions-table th,
+    .predictions-table td {
+        padding: 0.6rem 0.5rem;
+    }
+
+    .price-value {
+        font-size: 2.2rem;
+    }
+
+    .chart-section {
+        padding: 1.5rem;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}

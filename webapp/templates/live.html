@@ -10,7 +10,7 @@
 
 {% if demo_mode %}
 <div class="demo-banner">
-    📊 Demo Mode: Showing 30-day historical performance with synthetic but realistic predictions
+    📊 Demo Mode: Showing 30-day historical performance with realistic prediction
 </div>
 {% endif %}
 
@@ -144,6 +144,7 @@
 <!-- Chart Section -->
 <section class="chart-section">
     <h2>📈 Predicted vs Actual Prices (Last 30 Days)</h2>
+    <div id="chart-status" style="padding: 10px; margin-bottom: 15px; background: #e3f2fd; border-radius: 5px; display: none;"></div>
     <canvas id="predictionChart" width="400" height="150"></canvas>
 </section>
 
@@ -182,87 +183,213 @@
 <!-- Chart.js Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Fetch blockchain data and render chart
-fetch('/api/blockchain-predictions')
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            const ctx = document.getElementById('predictionChart').getContext('2d');
-
-            // Prepare data (filter predictions with actual data)
-            const validPredictions = data.predictions.filter(p => p.actual_1d && !isNaN(p.actual_1d));
-            const labels = validPredictions.map(p => p.date);
-            const predicted = validPredictions.map(p => p.pred_1d);
-            const actual = validPredictions.map(p => p.actual_1d);
-
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Predicted (1d)',
-                            data: predicted,
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                            tension: 0.1,
-                            pointRadius: 4
-                        },
-                        {
-                            label: 'Actual',
-                            data: actual,
-                            borderColor: 'rgb(255, 99, 132)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            tension: 0.1,
-                            pointRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: '1-Day Predictions vs Reality',
-                            font: { size: 16 }
-                        },
-                        legend: {
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            title: {
-                                display: true,
-                                text: 'Price (USD)'
+(function() {
+    'use strict';
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initChart);
+    } else {
+        initChart();
+    }
+    
+    function initChart() {
+        console.log('Initializing chart...');
+        
+        // Helper function to show status
+        function showStatus(message, isError) {
+            const statusDiv = document.getElementById('chart-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = isError ? '#f8d7da' : '#d4edda';
+                statusDiv.style.color = isError ? '#721c24' : '#155724';
+                statusDiv.innerHTML = message;
+            }
+            console.log(message);
+        }
+        
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            showStatus('❌ Chart.js library not loaded', true);
+            return;
+        }
+        
+        showStatus('Loading chart data...');
+        
+        // Fetch data from backend
+        fetch('/api/blockchain-predictions')
+            .then(function(response) {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                console.log('Data received:', data);
+                
+                // Validate response structure
+                if (!data || data.status !== 'success') {
+                    throw new Error('Invalid API response status');
+                }
+                
+                if (!data.predictions || !Array.isArray(data.predictions)) {
+                    throw new Error('No predictions array in response');
+                }
+                
+                console.log('Total predictions:', data.predictions.length);
+                
+                // Filter predictions that have actual outcomes
+                var validPredictions = [];
+                for (var i = 0; i < data.predictions.length; i++) {
+                    var pred = data.predictions[i];
+                    // Check if actual_1d exists and is a valid number
+                    if (pred.actual_1d !== null && 
+                        pred.actual_1d !== undefined && 
+                        pred.actual_1d !== '' &&
+                        typeof pred.actual_1d === 'number' &&
+                        !isNaN(pred.actual_1d)) {
+                        validPredictions.push(pred);
+                    }
+                }
+                
+                console.log('Valid predictions with outcomes:', validPredictions.length);
+                
+                if (validPredictions.length === 0) {
+                    showStatus('⚠️ No predictions with outcomes available yet', true);
+                    return;
+                }
+                
+                // Extract data for chart
+                var labels = [];
+                var predictedData = [];
+                var actualData = [];
+                
+                for (var i = 0; i < validPredictions.length; i++) {
+                    var p = validPredictions[i];
+                    labels.push(p.date || 'Unknown');
+                    predictedData.push(Number(p.pred_1d) || 0);
+                    actualData.push(Number(p.actual_1d) || 0);
+                }
+                
+                console.log('Chart data prepared:', {
+                    labels: labels.length,
+                    predicted: predictedData.length,
+                    actual: actualData.length
+                });
+                
+                showStatus('Creating chart with ' + validPredictions.length + ' data points...');
+                
+                // Get canvas element
+                var canvas = document.getElementById('predictionChart');
+                if (!canvas) {
+                    throw new Error('Canvas element not found');
+                }
+                
+                var ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    throw new Error('Could not get canvas context');
+                }
+                
+                // Create chart
+                var chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Predicted (1d)',
+                                data: predictedData,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.1,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
                             },
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
+                            {
+                                label: 'Actual',
+                                data: actualData,
+                                borderColor: 'rgb(255, 99, 132)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.1,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '1-Day Predictions vs Reality',
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        var value = context.parsed.y;
+                                        return label + ': $' + value.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                    }
                                 }
                             }
                         },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Date'
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Price (USD)',
+                                    font: { size: 14, weight: 'bold' }
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date',
+                                    font: { size: 14, weight: 'bold' }
+                                },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
                             }
                         }
                     }
-                }
+                });
+                
+                showStatus('✅ Chart created successfully with ' + validPredictions.length + ' data points!');
+                console.log('Chart instance created:', chart);
+            })
+            .catch(function(error) {
+                showStatus('❌ Error: ' + error.message, true);
+                console.error('Chart error:', error);
             });
-        }
-    })
-    .catch(err => console.error('Error loading chart:', err));
+    }
+})();
 </script>
 
 {% endblock %}

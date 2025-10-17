@@ -508,6 +508,12 @@ def results():
                          study_date='October 2025')
 
 
+@app.route('/chart-test')
+def chart_test():
+    """Test page for Chart.js debugging."""
+    return render_template('chart_test.html')
+
+
 @app.route('/live')
 def live():
     """Page 3: Live Performance & Blockchain Verification."""
@@ -591,6 +597,21 @@ def api_blockchain_predictions():
     try:
         predictions = get_predictions_with_outcomes(count=30, use_demo=USE_DEMO_DATA)
         summary = get_performance_summary(use_demo=USE_DEMO_DATA)
+        
+        # Clean NaN values - replace with None (null in JSON)
+        def clean_nan(obj):
+            """Recursively replace NaN with None for JSON serialization."""
+            if isinstance(obj, dict):
+                return {k: clean_nan(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_nan(item) for item in obj]
+            elif isinstance(obj, float) and (obj != obj):  # NaN check
+                return None
+            else:
+                return obj
+        
+        predictions = clean_nan(predictions)
+        summary = clean_nan(summary)
 
         return jsonify({
             'status': 'success',
@@ -658,6 +679,8 @@ if __name__ == '__main__':
     print("  1. Methodology:  http://localhost:5002/methodology")
     print("  2. Results:      http://localhost:5002/results")
     print("  3. Live:         http://localhost:5002/live")
+    print("\nDebug:")
+    print("  Chart Test:      http://localhost:5002/chart-test")
     print("\n" + "=" * 70 + "\n")
 
     # Use port 5002 to avoid conflict with AirPlay on macOS

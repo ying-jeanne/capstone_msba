@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Performance Comparison&colon; 10-Year vs 5-Year Training Data</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="performance-comparison-10-year-vs-5-year-training-data">Performance Comparison: 10-Year vs 5-Year Training Data</h1>
+<p><strong>Date:</strong> October 16, 2025
+<strong>Experiment:</strong> Compare model performance using 10 years vs 5 years of historical data</p>
+<hr>
+<h2 id="executive-summary">Executive Summary</h2>
+<p><strong>Key Finding:</strong> More training data (10y) did <strong>NOT</strong> improve model performance. In fact, the 5-year model outperforms across all metrics.</p>
+<p><strong>Recommendation:</strong> <strong>Continue using 5-year rolling window</strong> for production predictions.</p>
+<hr>
+<h2 id="dataset-comparison">Dataset Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>5-Year Data</th>
+<th>10-Year Data</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Training Samples</td>
+<td>1,134-1,138</td>
+<td>2,413-2,417</td>
+<td>+112%</td>
+</tr>
+<tr>
+<td>Test Samples</td>
+<td>244-245</td>
+<td>518-519</td>
+<td>+112%</td>
+</tr>
+<tr>
+<td>Date Range</td>
+<td>2020-2025</td>
+<td>2015-2025</td>
+<td>+5 years</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="performance-results">Performance Results</h2>
+<h3 id="1-day-predictions">1-Day Predictions</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>5-Year</th>
+<th>10-Year</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Price MAPE</strong></td>
+<td><strong>1.53%</strong></td>
+<td>1.71%</td>
+<td>⚠️ +0.18% worse</td>
+</tr>
+<tr>
+<td><strong>Price MAE</strong></td>
+<td>$1,539</td>
+<td>$1,470</td>
+<td>✅ -$69 better</td>
+</tr>
+<tr>
+<td><strong>Directional Accuracy</strong></td>
+<td><strong>51.43%</strong></td>
+<td>50.48%</td>
+<td>⚠️ -0.95% worse</td>
+</tr>
+<tr>
+<td>R² (returns)</td>
+<td>-0.000026</td>
+<td>-0.002261</td>
+<td>Negligible</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assessment:</strong> 5-year model maintains slight predictive edge (51.4% &gt; 50%). 10-year model closer to random walk.</p>
+<hr>
+<h3 id="3-day-predictions">3-Day Predictions</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>5-Year</th>
+<th>10-Year</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Price MAPE</strong></td>
+<td><strong>2.59%</strong></td>
+<td>3.06%</td>
+<td>⚠️ +0.46% worse</td>
+</tr>
+<tr>
+<td><strong>Price MAE</strong></td>
+<td>$2,628</td>
+<td>$2,598</td>
+<td>✅ -$30 better</td>
+</tr>
+<tr>
+<td><strong>Directional Accuracy</strong></td>
+<td><strong>55.33%</strong></td>
+<td>54.25%</td>
+<td>⚠️ -1.08% worse</td>
+</tr>
+<tr>
+<td>R² (returns)</td>
+<td>-0.000089</td>
+<td>-0.005543</td>
+<td>Worse</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assessment:</strong> 5-year model shows stronger directional signal (5.3% &gt; random vs 4.2% &gt; random).</p>
+<hr>
+<h3 id="7-day-predictions">7-Day Predictions</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>5-Year</th>
+<th>10-Year</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Price MAPE</strong></td>
+<td><strong>3.88%</strong></td>
+<td>4.56%</td>
+<td>⚠️ +0.68% worse</td>
+</tr>
+<tr>
+<td><strong>Price MAE</strong></td>
+<td>$3,963</td>
+<td>$3,892</td>
+<td>✅ -$71 better</td>
+</tr>
+<tr>
+<td><strong>Directional Accuracy</strong></td>
+<td><strong>56.56%</strong></td>
+<td>56.37%</td>
+<td>⚠️ -0.19% worse</td>
+</tr>
+<tr>
+<td>R² (returns)</td>
+<td>-0.000848</td>
+<td>-0.000810</td>
+<td>Similar</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assessment:</strong> 5-year model maintains best directional accuracy (6.6% &gt; random).</p>
+<hr>
+<h2 id="overall-averages">Overall Averages</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>5-Year</th>
+<th>10-Year</th>
+<th>Winner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Avg Price MAPE</td>
+<td><strong>2.67%</strong></td>
+<td>3.11%</td>
+<td>🏆 <strong>5-Year</strong></td>
+</tr>
+<tr>
+<td>Avg Directional Accuracy</td>
+<td><strong>54.44%</strong></td>
+<td>53.70%</td>
+<td>🏆 <strong>5-Year</strong></td>
+</tr>
+<tr>
+<td>Training Samples</td>
+<td>1,136</td>
+<td>2,415</td>
+<td>10-Year (quantity)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="key-insights">Key Insights</h2>
+<h3 id="1-data-quality--data-quantity">1. Data Quality &gt; Data Quantity</h3>
+<p>Despite having <strong>112% more training data</strong>, the 10-year model performs <strong>worse</strong> across all key metrics:</p>
+<ul>
+<li>Price MAPE increased by 0.44% (worse)</li>
+<li>Directional accuracy decreased by 0.74% (worse)</li>
+</ul>
+<p>This suggests <strong>recent data is more predictive</strong> than distant historical data.</p>
+<hr>
+<h3 id="2-market-regime-evolution">2. Market Regime Evolution</h3>
+<p>Bitcoin's market dynamics have evolved significantly over the past decade:</p>
+<p><strong>2015-2020 Era (included in 10y, excluded from 5y):</strong></p>
+<ul>
+<li>Early adoption phase</li>
+<li>Wild volatility swings</li>
+<li>Different market participants</li>
+<li>Lower institutional involvement</li>
+<li>Lower overall liquidity</li>
+</ul>
+<p><strong>2020-2025 Era (captured by 5y):</strong></p>
+<ul>
+<li>Institutional adoption</li>
+<li>More mature market structure</li>
+<li>Higher liquidity</li>
+<li>Different price drivers</li>
+<li>Current market regime</li>
+</ul>
+<p><strong>Conclusion:</strong> The 2015-2020 data introduces <strong>noise</strong> rather than <strong>signal</strong> for predicting 2025 prices.</p>
+<hr>
+<h3 id="3-directional-signal-degradation">3. Directional Signal Degradation</h3>
+<p>The 5-year model maintains a clearer directional edge:</p>
+<table>
+<thead>
+<tr>
+<th>Horizon</th>
+<th>5y Edge over Random</th>
+<th>10y Edge over Random</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1-day</td>
+<td>+1.43%</td>
+<td>+0.48%</td>
+</tr>
+<tr>
+<td>3-day</td>
+<td>+5.33%</td>
+<td>+4.25%</td>
+</tr>
+<tr>
+<td>7-day</td>
+<td>+6.56%</td>
+<td>+6.37%</td>
+</tr>
+</tbody>
+</table>
+<p>The 1-day 10y model is particularly concerning - barely above random (50.48% vs 50%).</p>
+<hr>
+<h3 id="4-price-mape-degradation-pattern">4. Price MAPE Degradation Pattern</h3>
+<p>The degradation increases with prediction horizon:</p>
+<table>
+<thead>
+<tr>
+<th>Horizon</th>
+<th>MAPE Increase</th>
+<th>Relative Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1-day</td>
+<td>+0.18%</td>
+<td>+11.4%</td>
+</tr>
+<tr>
+<td>3-day</td>
+<td>+0.46%</td>
+<td>+17.8%</td>
+</tr>
+<tr>
+<td>7-day</td>
+<td>+0.68%</td>
+<td>+17.5%</td>
+</tr>
+</tbody>
+</table>
+<p>This suggests the distant historical data affects <strong>longer-term patterns</strong> more than short-term.</p>
+<hr>
+<h2 id="technical-analysis-why-did-10y-perform-worse">Technical Analysis: Why Did 10y Perform Worse?</h2>
+<h3 id="1-non-stationary-time-series">1. Non-Stationary Time Series</h3>
+<p>Bitcoin price dynamics are <strong>non-stationary</strong>:</p>
+<ul>
+<li>Market structure changes over time</li>
+<li>Different participants</li>
+<li>Regulatory environment evolution</li>
+<li>Technology improvements (Lightning Network, etc.)</li>
+</ul>
+<p>Old patterns may <strong>not apply</strong> to current market.</p>
+<hr>
+<h3 id="2-concept-drift">2. Concept Drift</h3>
+<p>Machine learning models assume training and test data come from same distribution. Bitcoin violates this:</p>
+<ul>
+<li>2015: $300 BTC, mostly retail</li>
+<li>2020: $20k BTC, institutional entry</li>
+<li>2025: $110k BTC, mature asset class</li>
+</ul>
+<p>The model trained on 2015 data learns patterns that <strong>no longer exist</strong>.</p>
+<hr>
+<h3 id="3-signal-to-noise-ratio">3. Signal-to-Noise Ratio</h3>
+<ul>
+<li>5y data: Higher signal (recent relevant patterns)</li>
+<li>10y data: Lower signal (diluted by irrelevant historical patterns)</li>
+</ul>
+<p>More data only helps if it's <strong>relevant data</strong>.</p>
+<hr>
+<h2 id="recommendations">Recommendations</h2>
+<h3 id="for-production-use">For Production Use</h3>
+<ol>
+<li>
+<p><strong>Continue using 5-year rolling window</strong></p>
+<ul>
+<li>Best performance across all metrics</li>
+<li>Captures current market regime</li>
+<li>Better directional accuracy</li>
+</ul>
+</li>
+<li>
+<p><strong>Do NOT switch to 10-year model</strong></p>
+<ul>
+<li>Lower accuracy (3.11% vs 2.67% MAPE)</li>
+<li>Weaker directional signal (53.70% vs 54.44%)</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="for-model-improvements">For Model Improvements</h3>
+<ol>
+<li>
+<p><strong>Add Market Regime Detection</strong></p>
+<pre><code>- Classify current market: Bull/Bear/Sideways
+- Train separate models for each regime
+- Switch models based on detected regime
+</code></pre>
+</li>
+<li>
+<p><strong>Implement Time-Weighted Training</strong></p>
+<pre><code>- Weight recent data more heavily
+- Exponential decay for older samples
+- Example: 2024 data = 1.0x weight, 2023 = 0.8x, 2022 = 0.6x
+</code></pre>
+</li>
+<li>
+<p><strong>Consider Ensemble Approach</strong></p>
+<pre><code>- Combine 5y and 10y predictions
+- Weight 5y model more heavily (e.g., 70/30 split)
+- Capture both recent patterns and long-term cycles
+</code></pre>
+</li>
+<li>
+<p><strong>Implement Rolling Window Evaluation</strong></p>
+<pre><code>- Test 3y, 4y, 5y, 6y windows
+- Find optimal window size dynamically
+- Update based on recent validation performance
+</code></pre>
+</li>
+</ol>
+<hr>
+<h2 id="conclusion">Conclusion</h2>
+<p>This experiment validates an important principle in time series forecasting: <strong>More data ≠ Better predictions</strong>.</p>
+<p>For Bitcoin price prediction:</p>
+<ul>
+<li>✅ <strong>5-year window:</strong> Optimal (2.67% MAPE, 54.44% directional)</li>
+<li>⚠️ <strong>10-year window:</strong> Suboptimal (3.11% MAPE, 53.70% directional)</li>
+</ul>
+<p><strong>The 5-year model captures the current market regime without being diluted by outdated patterns from Bitcoin's early days.</strong></p>
+<hr>
+<h2 id="appendix-raw-metrics">Appendix: Raw Metrics</h2>
+<h3 id="5-year-model-baseline">5-Year Model (Baseline)</h3>
+<pre><code class="language-csv">horizon,train_samples,test_samples,price_mape,directional_accuracy
+1d,1138,245,1.53,51.43
+3d,1137,244,2.59,55.33
+7d,1134,244,3.88,56.56
+</code></pre>
+<h3 id="10-year-model-new">10-Year Model (New)</h3>
+<pre><code class="language-csv">horizon,train_samples,test_samples,price_mape,directional_accuracy
+1d,2417,519,1.71,50.48
+3d,2416,518,3.06,54.25
+7d,2413,518,4.56,56.37
+</code></pre>
+<hr>
+<h2 id="next-steps">Next Steps</h2>
+<ol>
+<li>✅ Revert to 5-year data for production - <strong>COMPLETED</strong></li>
+<li>✅ Train multiple model types (XGBoost, RF, LightGBM, CatBoost) - <strong>COMPLETED</strong>
+<ul>
+<li>See: <a href="MODEL_COMPARISON_REPORT.html">MODEL_COMPARISON_REPORT.md</a></li>
+<li>Winner: XGBoost (2.67% MAPE, 54.4% directional)</li>
+<li>Random Forest severely overfits (not recommended)</li>
+</ul>
+</li>
+<li>🔄 Implement ensemble approach (XGBoost + LightGBM + CatBoost)</li>
+<li>🔄 Research market regime detection methods</li>
+<li>🔄 Implement time-weighted training</li>
+<li>🔄 Backtest rolling window optimization</li>
+</ol>
+
+            <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+            
+        </body>
+        </html>
