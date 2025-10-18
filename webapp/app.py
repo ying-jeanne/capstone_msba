@@ -559,9 +559,15 @@ def chart_test():
     return render_template('chart_test.html')
 
 
+@app.route('/architecture')
+def architecture():
+    """Page 3: System Architecture & Technical Implementation."""
+    return render_template('architecture.html')
+
+
 @app.route('/live')
 def live():
-    """Page 3: Live Performance & Blockchain Verification."""
+    """Page 4: Live Performance & Blockchain Verification."""
     try:
         # Get current price
         current_data = get_live_data()

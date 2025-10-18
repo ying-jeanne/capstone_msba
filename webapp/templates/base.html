@@ -35,6 +35,15 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ url_for('architecture') }}" class="nav-tab {% if request.endpoint == 'architecture' %}active{% endif %}">
+                        <span class="nav-icon">🏗️</span>
+                        <span class="nav-text">
+                            <span class="nav-title">Architecture</span>
+                            <span class="nav-subtitle">How it's built</span>
+                        </span>
+                    </a>
+                </li>
+                <li>
                     <a href="{{ url_for('live') }}" class="nav-tab {% if request.endpoint == 'live' %}active{% endif %}">
                         <span class="nav-icon">⚡</span>
                         <span class="nav-text">

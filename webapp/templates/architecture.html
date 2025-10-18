@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}System Architecture - Bitcoin Price Prediction{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🏗️ System Architecture</h1>
+    <p class="page-subtitle">From Research to Production - Building a Complete ML System</p>
+</div>
+
+<!-- Quick Stats -->
+<section class="quick-stats">
+    <div class="stat-card">
+        <div class="stat-icon">⛓️</div>
+        <div class="stat-value">35+</div>
+        <div class="stat-label">Blockchain Predictions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value">Daily</div>
+        <div class="stat-label">Automated Updates</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-value">3</div>
+        <div class="stat-label">GitHub Actions Workflows</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🌐</div>
+        <div class="stat-value">100%</div>
+        <div class="stat-label">Uptime (Testnet)</div>
+    </div>
+</section>
+
+<!-- System Flow Diagram -->
+<section class="architecture-flow">
+    <h2>End-to-End Data Flow</h2>
+    <p class="section-intro">From raw data to blockchain-verified predictions in automated pipeline</p>
+
+    <div class="flow-diagram">
+        <!-- Step 1 -->
+        <div class="flow-step">
+            <div class="flow-icon">📊</div>
+            <div class="flow-title">Data Sources</div>
+            <div class="flow-content">
+                <div class="flow-item">Yahoo Finance API</div>
+                <div class="flow-item">Fear & Greed Index</div>
+                <div class="flow-item">5 years historical data</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- Step 2 -->
+        <div class="flow-step">
+            <div class="flow-icon">🔧</div>
+            <div class="flow-title">Feature Engineering</div>
+            <div class="flow-content">
+                <div class="flow-item">58 technical indicators</div>
+                <div class="flow-item">3 sentiment features</div>
+                <div class="flow-item">Rolling statistics</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- Step 3 -->
+        <div class="flow-step">
+            <div class="flow-icon">🤖</div>
+            <div class="flow-title">ML Models</div>
+            <div class="flow-content">
+                <div class="flow-item">XGBoost (Production)</div>
+                <div class="flow-item">Return-based prediction</div>
+                <div class="flow-item">3 horizons (1d, 3d, 7d)</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- Step 4 -->
+        <div class="flow-step">
+            <div class="flow-icon">⚙️</div>
+            <div class="flow-title">Automation</div>
+            <div class="flow-content">
+                <div class="flow-item">GitHub Actions CI/CD</div>
+                <div class="flow-item">Daily at 01:30 UTC</div>
+                <div class="flow-item">Zero manual work</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- Step 5 -->
+        <div class="flow-step">
+            <div class="flow-icon">⛓️</div>
+            <div class="flow-title">Blockchain</div>
+            <div class="flow-content">
+                <div class="flow-item">Moonbase Alpha</div>
+                <div class="flow-item">Immutable storage</div>
+                <div class="flow-item">Smart contract verified</div>
+            </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- Step 6 -->
+        <div class="flow-step">
+            <div class="flow-icon">🌐</div>
+            <div class="flow-title">Web Interface</div>
+            <div class="flow-content">
+                <div class="flow-item">Flask application</div>
+                <div class="flow-item">Live charts</div>
+                <div class="flow-item">Real-time tracking</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Technology Stack -->
+<section class="tech-stack-section">
+    <h2>Technology Stack</h2>
+    <p class="section-intro">Production-grade tools and frameworks</p>
+
+    <div class="tech-grid">
+        <!-- Data Layer -->
+        <div class="tech-category">
+            <h3>📊 Data Layer</h3>
+            <div class="tech-badges">
+                <span class="tech-badge">Yahoo Finance API</span>
+                <span class="tech-badge">Fear & Greed API</span>
+                <span class="tech-badge">pandas</span>
+                <span class="tech-badge">numpy</span>
+            </div>
+        </div>
+
+        <!-- ML Layer -->
+        <div class="tech-category">
+            <h3>🤖 Machine Learning</h3>
+            <div class="tech-badges">
+                <span class="tech-badge highlight">XGBoost</span>
+                <span class="tech-badge">scikit-learn</span>
+                <span class="tech-badge">CatBoost</span>
+                <span class="tech-badge">LightGBM</span>
+            </div>
+        </div>
+
+        <!-- Automation Layer -->
+        <div class="tech-category">
+            <h3>⚙️ Automation & CI/CD</h3>
+            <div class="tech-badges">
+                <span class="tech-badge highlight">GitHub Actions</span>
+                <span class="tech-badge">Cron Schedules</span>
+                <span class="tech-badge">Git Workflows</span>
+            </div>
+        </div>
+
+        <!-- Blockchain Layer -->
+        <div class="tech-category">
+            <h3>⛓️ Blockchain</h3>
+            <div class="tech-badges">
+                <span class="tech-badge highlight">Solidity</span>
+                <span class="tech-badge">Web3.py</span>
+                <span class="tech-badge">Moonbase Alpha</span>
+                <span class="tech-badge">Smart Contracts</span>
+            </div>
+        </div>
+
+        <!-- Web Layer -->
+        <div class="tech-category">
+            <h3>🌐 Web Interface</h3>
+            <div class="tech-badges">
+                <span class="tech-badge">Flask</span>
+                <span class="tech-badge">Chart.js</span>
+                <span class="tech-badge">HTML/CSS/JS</span>
+                <span class="tech-badge">Responsive Design</span>
+            </div>
+        </div>
+
+        <!-- Infrastructure -->
+        <div class="tech-category">
+            <h3>🚀 Infrastructure</h3>
+            <div class="tech-badges">
+                <span class="tech-badge">GitHub</span>
+                <span class="tech-badge">Python 3.13</span>
+                <span class="tech-badge">Virtual Env</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Engineering Highlights -->
+<section class="engineering-section">
+    <h2>Key Engineering Innovations</h2>
+    <p class="section-intro">What makes this system production-ready</p>
+
+    <div class="innovation-grid">
+        <div class="innovation-card">
+            <div class="innovation-icon">🎯</div>
+            <h3>Return-Based Prediction</h3>
+            <p>Solves the extrapolation problem in tree-based models by predicting percentage returns instead of absolute prices. Eliminates systematic bias when Bitcoin price exceeds training data range.</p>
+            <div class="innovation-result">
+                <span class="result-label">Impact:</span>
+                <span class="result-value">1.53% MAPE (vs 5-10% with price-based)</span>
+            </div>
+        </div>
+
+        <div class="innovation-card">
+            <div class="innovation-icon">⛓️</div>
+            <h3>Blockchain Verification</h3>
+            <p>Every prediction is stored on Moonbase Alpha blockchain with immutable timestamps. Smart contract ensures transparency and prevents post-prediction tampering.</p>
+            <div class="innovation-result">
+                <span class="result-label">Contract:</span>
+                <span class="result-value">0x93b8...B42E</span>
+            </div>
+        </div>
+
+        <div class="innovation-card">
+            <div class="innovation-icon">⚡</div>
+            <h3>Fully Automated Pipeline</h3>
+            <p>Three GitHub Actions workflows run daily at 01:00, 01:30, and 01:40 UTC. Outcomes updated, predictions generated, and blockchain storage - all without manual intervention.</p>
+            <div class="innovation-result">
+                <span class="result-label">Manual Work:</span>
+                <span class="result-value">0 hours/day</span>
+            </div>
+        </div>
+
+        <div class="innovation-card">
+            <div class="innovation-icon">🛡️</div>
+            <h3>Smart Duplicate Detection</h3>
+            <p>Prevents duplicate blockchain transactions and redundant predictions. Checks existing data before making transactions, saving gas costs and preventing data corruption.</p>
+            <div class="innovation-result">
+                <span class="result-label">Gas Saved:</span>
+                <span class="result-value">~$0.50/day</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Daily Automation Timeline -->
+<section class="timeline-section">
+    <h2>Daily Automation Timeline</h2>
+    <p class="section-intro">Fully automated workflow running every 24 hours</p>
+
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="timeline-time">00:00 UTC</div>
+            <div class="timeline-icon">📊</div>
+            <div class="timeline-content">
+                <h3>Bitcoin Daily Close</h3>
+                <p>Previous day's closing price recorded by Yahoo Finance. Data becomes available for fetching.</p>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-time">01:00 UTC</div>
+            <div class="timeline-icon">✅</div>
+            <div class="timeline-content">
+                <h3>Update Outcomes Workflow</h3>
+                <p>Fetches actual Bitcoin prices and updates previous predictions with real outcomes. Calculates MAPE and directional accuracy.</p>
+                <div class="timeline-badge success">update_outcomes.yml</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-time">01:30 UTC</div>
+            <div class="timeline-icon">🤖</div>
+            <div class="timeline-content">
+                <h3>Generate Predictions Workflow</h3>
+                <p>Fetches latest data, engineers 58 features, and generates 1d, 3d, 7d predictions using XGBoost models.</p>
+                <div class="timeline-badge primary">predict_daily.yml</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-time">01:40 UTC</div>
+            <div class="timeline-icon">⛓️</div>
+            <div class="timeline-content">
+                <h3>Store on Blockchain Workflow</h3>
+                <p>Stores prediction on Moonbase Alpha smart contract with immutable timestamp. Transaction hash saved for verification.</p>
+                <div class="timeline-badge accent">store_predictions_onchain.yml</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-time">01:45 UTC</div>
+            <div class="timeline-icon">🌐</div>
+            <div class="timeline-content">
+                <h3>Webapp Updated</h3>
+                <p>Flask application displays latest predictions and blockchain-verified performance metrics. Users see fresh data.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Project Journey -->
+<section class="journey-section">
+    <h2>From Research to Production</h2>
+    <p class="section-intro">The evolution of this capstone project</p>
+
+    <div class="journey-cards">
+        <div class="journey-card">
+            <div class="journey-number">1</div>
+            <h3>Research Phase</h3>
+            <ul>
+                <li>Jupyter notebooks for experimentation</li>
+                <li>Model comparison (4 algorithms tested)</li>
+                <li>Discovered return-based prediction advantage</li>
+            </ul>
+        </div>
+
+        <div class="journey-card">
+            <div class="journey-number">2</div>
+            <h3>Productionization</h3>
+            <ul>
+                <li>Converted notebooks to Python scripts</li>
+                <li>Built automated data pipeline</li>
+                <li>Implemented GitHub Actions CI/CD</li>
+            </ul>
+        </div>
+
+        <div class="journey-card">
+            <div class="journey-number">3</div>
+            <h3>Blockchain Integration</h3>
+            <ul>
+                <li>Deployed smart contract on Moonbase Alpha</li>
+                <li>Web3.py integration for predictions</li>
+                <li>Immutable tracking system</li>
+            </ul>
+        </div>
+
+        <div class="journey-card">
+            <div class="journey-number">4</div>
+            <h3>Web Interface</h3>
+            <ul>
+                <li>Flask application with 4 pages</li>
+                <li>Chart.js visualizations</li>
+                <li>Live performance tracking</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- System Stats -->
+<section class="stats-section">
+    <h2>System Statistics</h2>
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-number">~30 sec</div>
+            <div class="stat-description">Prediction Generation Time</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">212,280</div>
+            <div class="stat-description">Gas Per Blockchain TX</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">3</div>
+            <div class="stat-description">Daily Workflow Runs</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">58</div>
+            <div class="stat-description">Features Engineered</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">0</div>
+            <div class="stat-description">Manual Interventions/Day</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">100%</div>
+            <div class="stat-description">Workflow Success Rate</div>
+        </div>
+    </div>
+</section>
+
+<!-- GitHub Repository -->
+<section class="repo-section">
+    <div class="repo-card">
+        <h2>💻 View Source Code</h2>
+        <p>Complete codebase available on GitHub with detailed documentation</p>
+        <a href="https://github.com/ying-jeanne/capstone_msba" target="_blank" class="repo-button">
+            View on GitHub →
+        </a>
+    </div>
+</section>
+
+{% endblock %}
