@@ -128,16 +128,17 @@ def main():
     print(f"   ✅ Updated: {predictions_file}")
 
     # ========================================================================
-    # STEP 5: Save to Tracking File
+    # STEP 5: Save to Tracking Files
     # ========================================================================
 
     tracking_dir = Path(__file__).parent.parent / 'data' / 'blockchain'
     tracking_dir.mkdir(parents=True, exist_ok=True)
     tracking_file = tracking_dir / 'prediction_tracking.csv'
+    demo_file = tracking_dir / 'prediction_tracking_demo.csv'
 
-    print(f"\n📋 Saving to tracking file...")
+    print(f"\n📋 Saving to tracking files...")
 
-    # Create tracking record
+    # Create tracking record (for prediction_tracking.csv - minimal columns)
     tracking_record = {
         'date': latest['timestamp'],
         'prediction_id': result['prediction_id'],
@@ -168,6 +169,53 @@ def main():
         print(f"   ✅ Created: {tracking_file}")
 
     # ========================================================================
+    # STEP 6: Also Save to Demo File (for outcomes tracking)
+    # ========================================================================
+
+    # Create demo record (includes all columns for outcomes tracking)
+    demo_record = {
+        'date': latest['timestamp'],
+        'prediction_id': result['prediction_id'],
+        'tx_hash': result['tx_hash'],
+        'block_number': result['block_number'],
+        'blockchain_timestamp': result['timestamp'],
+        'current_price': latest['current_price'],
+        'pred_1d': latest['pred_1d_price'],
+        'pred_3d': latest['pred_3d_price'],
+        'pred_7d': latest['pred_7d_price'],
+        'actual_1d': None,
+        'actual_3d': None,
+        'actual_7d': None,
+        'error_1d': None,
+        'error_3d': None,
+        'error_7d': None,
+        'mape_1d': None,
+        'mape_3d': None,
+        'mape_7d': None,
+        'direction_correct_1d': None,
+        'direction_correct_3d': None,
+        'direction_correct_7d': None,
+        'gas_used': result['gas_used'],
+        'outcomes_updated_at': None
+    }
+
+    # Append to demo file or create if doesn't exist
+    if demo_file.exists():
+        demo_df = pd.read_csv(demo_file)
+
+        # Check for duplicates (same date)
+        if latest['timestamp'] in demo_df['date'].values:
+            print(f"   ⚠️  Warning: Prediction for {latest['timestamp']} already in demo file")
+        else:
+            demo_df = pd.concat([demo_df, pd.DataFrame([demo_record])], ignore_index=True)
+            demo_df.to_csv(demo_file, index=False)
+            print(f"   ✅ Appended to: {demo_file}")
+    else:
+        demo_df = pd.DataFrame([demo_record])
+        demo_df.to_csv(demo_file, index=False)
+        print(f"   ✅ Created: {demo_file}")
+
+    # ========================================================================
     # SUMMARY
     # ========================================================================
 
@@ -186,6 +234,7 @@ def main():
     print(f"\n📁 Files Updated:")
     print(f"   - {predictions_file}")
     print(f"   - {tracking_file}")
+    print(f"   - {demo_file}")
     print("\n" + "="*70)
 
 

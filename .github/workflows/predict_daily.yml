@@ -2,8 +2,8 @@ name: Update Daily Predictions
 
 on:
   schedule:
-    # Run every day at 6 PM UTC (after markets close)
-    - cron: '0 18 * * *'
+    # Run every day at 2 PM UTC (after Yahoo Finance data + Fear & Greed are available)
+    - cron: '0 14 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
