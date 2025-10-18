@@ -73,9 +73,14 @@ def main():
 
     # Check if this prediction already has blockchain data
     if 'tx_hash' in df.columns and pd.notna(latest.get('tx_hash')) and latest.get('tx_hash') != 'N/A':
-        print(f"\n⚠️  Warning: This prediction already has blockchain data:")
+        print(f"\n✅ Prediction already stored on blockchain:")
+        print(f"   Date: {latest['timestamp']}")
         print(f"   TX Hash: {latest['tx_hash']}")
-        print(f"   Skipping storage to avoid duplicate.")
+        print(f"   Block: {latest.get('block_number', 'N/A')}")
+        print(f"\n🔗 View on Moonscan:")
+        print(f"   https://moonbase.moonscan.io/tx/{latest['tx_hash']}")
+        print(f"\n✅ Nothing to do - exiting successfully.")
+        print("="*70)
         return
 
     # ========================================================================
@@ -158,7 +163,7 @@ def main():
 
         # Check for duplicates (same date)
         if latest['timestamp'] in tracking_df['date'].values:
-            print(f"   ⚠️  Warning: Prediction for {latest['timestamp']} already in tracking file")
+            print(f"   ℹ️  Prediction for {latest['timestamp']} already in tracking file (skipping)")
         else:
             tracking_df = pd.concat([tracking_df, pd.DataFrame([tracking_record])], ignore_index=True)
             tracking_df.to_csv(tracking_file, index=False)
@@ -205,7 +210,7 @@ def main():
 
         # Check for duplicates (same date)
         if latest['timestamp'] in demo_df['date'].values:
-            print(f"   ⚠️  Warning: Prediction for {latest['timestamp']} already in demo file")
+            print(f"   ℹ️  Prediction for {latest['timestamp']} already in demo file (skipping)")
         else:
             demo_df = pd.concat([demo_df, pd.DataFrame([demo_record])], ignore_index=True)
             demo_df.to_csv(demo_file, index=False)
