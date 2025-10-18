@@ -40,7 +40,7 @@ jobs:
       env:
         MOONBASE_PRIVATE_KEY: ${{ secrets.MOONBASE_PRIVATE_KEY }}
         CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
-        MOONBASE_RPC_URL: https://rpc.api.moonbase.moonbeam.network
+        MOONBASE_RPC_URL: ${{ secrets.MOONBASE_RPC_URL }}
       run: |
         echo "📤 Storing daily prediction on blockchain..."
         python utils/store_daily_prediction_onchain.py
