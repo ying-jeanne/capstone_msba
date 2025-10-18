@@ -2,8 +2,8 @@ name: Update Prediction Outcomes
 
 on:
   schedule:
-    # Run every day at 2 PM UTC (24 hours after predictions, to update outcomes)
-    - cron: '0 14 * * *'
+    # Run every day at 1:00 AM UTC (1 hour after daily close at 00:00 UTC)
+    - cron: '0 1 * * *'
   workflow_dispatch:  # Allow manual trigger for testing
 
 permissions:

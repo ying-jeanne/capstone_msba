@@ -2,8 +2,8 @@ name: Store Daily Predictions On-Chain
 
 on:
   schedule:
-    # Run daily at 2:10 PM UTC (10 min after predict_daily.yml at 2:00 PM)
-    - cron: '10 14 * * *'
+    # Run daily at 1:40 AM UTC (10 min after predict_daily.yml at 1:30 AM)
+    - cron: '40 1 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
