@@ -39,17 +39,6 @@ jobs:
       run: |
         echo "Training daily models (1d, 3d, 7d)..."
         python utils/train_daily_models.py
-        
-    - name: Train Hourly Models
-      run: |
-        echo "Training hourly models (1h, 6h, 24h)..."
-        python utils/train_hourly_models.py
-        
-    - name: Train 15-Min Models
-      run: |
-        echo "Training 15-min models (15m, 1h, 4h)..."
-        python utils/train_15min_models.py
-        
     - name: Commit and push trained models
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"

@@ -25,7 +25,7 @@ from utils.blockchain_integration import get_contract
 # ============================================================================
 # 📝 MANUALLY SET YOUR TRANSACTION HASH HERE:
 # ============================================================================
-TRANSACTION_HASH = '0x6a04d2c82924ae4cf55bd10b7e5a5256746d9cf9bea15ba777635425cb80c999'
+TRANSACTION_HASH = '0xde428870010329d70340f0b744fe2c23b2f7b12f828002d0d70cb50cdc792ca8'
 # ============================================================================
 
 
