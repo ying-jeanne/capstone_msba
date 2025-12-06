@@ -4,13 +4,13 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>⛓️ Blockchain-Verified Predictions</h1>
+    <h1><i class="fas fa-link"></i> Blockchain-Verified Predictions</h1>
     <p class="page-subtitle">Real-world performance with immutable on-chain proof</p>
 </div>
 
 {% if demo_mode %}
 <div class="demo-banner">
-    📊 Demo Mode: Showing 30-day historical performance with realistic prediction
+    <i class="fas fa-chart-bar"></i> Demo Mode: Showing 30-day historical performance with realistic prediction
 </div>
 {% endif %}
 
@@ -31,28 +31,30 @@
     <h2>📊 30-Day Performance Summary</h2>
     <div class="metrics-grid">
         <div class="metric-card">
-            <div class="metric-icon">📈</div>
+            <div class="metric-icon"><i class="fas fa-arrow-trend-up"></i></div>
             <div class="metric-value">{{ "%.2f"|format(summary.avg_mape_1d) }}%</div>
             <div class="metric-label">Avg MAPE (1-Day)</div>
             <div class="metric-sublabel">
                 Test: 1.53% |
-                {% if summary.avg_mape_1d < 2 %} <span class="status-good">✅ Excellent</span>
-                    {% elif summary.avg_mape_1d < 3 %} <span class="status-ok">⚠️ Good</span>
+                {% if summary.avg_mape_1d < 2 %} <span class="status-good"><i class="fas fa-check-circle"></i>
+                    Excellent</span>
+                    {% elif summary.avg_mape_1d < 3 %} <span class="status-ok"><i
+                            class="fas fa-exclamation-triangle"></i> Good</span>
                         {% else %}
-                        <span class="status-poor">❌ Poor</span>
+                        <span class="status-poor"><i class="fas fa-times-circle"></i> Poor</span>
                         {% endif %}
             </div>
         </div>
 
         <div class="metric-card">
-            <div class="metric-icon">🎯</div>
+            <div class="metric-icon"><i class="fas fa-crosshairs"></i></div>
             <div class="metric-value">{{ "%.1f"|format(summary.directional_accuracy_1d) }}%</div>
             <div class="metric-label">Directional Accuracy</div>
             <div class="metric-sublabel">Test: 51.4% | Live: {{ "%.1f"|format(summary.directional_accuracy_1d) }}%</div>
         </div>
 
         <div class="metric-card">
-            <div class="metric-icon">⛓️</div>
+            <div class="metric-icon"><i class="fas fa-link"></i></div>
             <div class="metric-value">{{ summary.total_predictions }}</div>
             <div class="metric-label">Total Predictions</div>
             <div class="metric-sublabel">{{ summary.predictions_with_outcomes_1d }} with outcomes</div>
@@ -60,7 +62,7 @@
 
         {% if summary.best_prediction_1d %}
         <div class="metric-card">
-            <div class="metric-icon">🏆</div>
+            <div class="metric-icon"><i class="fas fa-trophy"></i></div>
             <div class="metric-value">{{ "%.2f"|format(summary.best_prediction_1d.mape_1d) }}%</div>
             <div class="metric-label">Best Prediction</div>
             <div class="metric-sublabel">{{ summary.best_prediction_1d.date }}</div>
@@ -71,7 +73,7 @@
 
 <!-- Blockchain Predictions Table -->
 <section class="blockchain-section">
-    <h2>⛓️ Blockchain-Verified Predictions (Last 30 Days)</h2>
+    <h2><i class="fas fa-link"></i> Blockchain-Verified Predictions (Last 30 Days)</h2>
 
     <div class="table-container">
         <table class="predictions-table">
@@ -120,9 +122,9 @@
                     </td>
                     <td class="direction">
                         {% if pred.direction_correct_1d == 1 or pred.direction_correct_1d == True %}
-                        <span class="correct">✓</span>
+                        <span class="correct"><i class="fas fa-check"></i></span>
                         {% elif pred.direction_correct_1d == 0 or pred.direction_correct_1d == False %}
-                        <span class="incorrect">✗</span>
+                        <span class="incorrect"><i class="fas fa-times"></i></span>
                         {% else %}
                         -
                         {% endif %}
@@ -143,7 +145,7 @@
 
 <!-- Chart Section -->
 <section class="chart-section">
-    <h2>📈 Predicted vs Actual Prices (Last 30 Days)</h2>
+    <h2><i class="fas fa-chart-line"></i> Predicted vs Actual Prices (Last 30 Days)</h2>
     <div id="chart-status"
         style="padding: 10px; margin-bottom: 15px; background: #e3f2fd; border-radius: 5px; display: none;"></div>
     <canvas id="predictionChart" width="400" height="150"></canvas>
@@ -151,7 +153,7 @@
 
 <!-- Blockchain Verification Panel -->
 <section class="blockchain-info">
-    <h2>⛓️ Blockchain Verification</h2>
+    <h2><i class="fas fa-link"></i> Blockchain Verification</h2>
     <div class="info-grid">
         <div class="info-card">
             <div class="info-label">Smart Contract</div>

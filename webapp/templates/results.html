@@ -12,8 +12,10 @@
 <section class="metrics-dashboard metrics-dashboard-bg">
     <div style="background: rgba(0,0,0,0.7); padding: 2rem; border-radius: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2 style="color: white; margin: 0;">Production Model: XGBoost 🏆</h2>
-            <span class="badge" style="background: #10b981; color: white; padding: 0.5rem 1rem; font-size: 1rem; border-radius: 20px;">✅ Winner: Beat 3 Competitors</span>
+            <h2 style="color: white; margin: 0;">Production Model: XGBoost <i class="fas fa-trophy"></i></h2>
+            <span class="badge"
+                style="background: #10b981; color: white; padding: 0.5rem 1rem; font-size: 1rem; border-radius: 20px;"><i
+                    class="fas fa-check-circle"></i> Winner: Beat 3 Competitors</span>
         </div>
         <p style="color: rgba(255,255,255,0.85); margin: 0 0 1.5rem 0; font-size: 1rem;">
             Selected after comprehensive model comparison: XGBoost outperformed Random Forest, LightGBM, and CatBoost
@@ -22,44 +24,48 @@
         {% if xgboost_results|length > 0 %}
         <div class="metrics-grid-large">
             <div class="metric-card primary">
-                <div class="metric-icon">🥇</div>
+                <div class="metric-icon"><i class="fas fa-medal"></i></div>
                 <div class="metric-value">{{ "%.2f"|format(xgb_summary.best_mape|default(0)) }}%</div>
                 <div class="metric-label">Best MAPE ({{ xgb_summary.best_mape_horizon|default('1d')|upper }})</div>
                 <div class="metric-info">Industry-leading accuracy</div>
             </div>
 
             <div class="metric-card primary">
-                <div class="metric-icon">🎯</div>
+                <div class="metric-icon"><i class="fas fa-crosshairs"></i></div>
                 <div class="metric-value">{{ "%.1f"|format(xgb_summary.best_directional|default(0)) }}%</div>
-                <div class="metric-label">Best Directional ({{ xgb_summary.best_directional_horizon|default('7d')|upper }})</div>
-                <div class="metric-info">{{ "%.1f"|format(xgb_summary.best_directional_edge|default(0)) }}% edge over random walk</div>
+                <div class="metric-label">Best Directional ({{ xgb_summary.best_directional_horizon|default('7d')|upper
+                    }})</div>
+                <div class="metric-info">{{ "%.1f"|format(xgb_summary.best_directional_edge|default(0)) }}% edge over
+                    random walk</div>
             </div>
 
             <div class="metric-card primary">
-                <div class="metric-icon">📊</div>
+                <div class="metric-icon"><i class="fas fa-chart-simple"></i></div>
                 <div class="metric-value">{{ "%.2f"|format(xgb_summary.avg_mape|default(0)) }}%</div>
                 <div class="metric-label">Average MAPE</div>
-                <div class="metric-info">Across all horizons ({{ xgb_summary.horizons_label|default('1D, 3D, 7D') }})</div>
+                <div class="metric-info">Across all horizons ({{ xgb_summary.horizons_label|default('1D, 3D, 7D') }})
+                </div>
             </div>
 
             <div class="metric-card primary">
-                <div class="metric-icon">✅</div>
+                <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
                 <div class="metric-value">{{ "%.1f"|format(xgb_summary.avg_directional|default(0)) }}%</div>
                 <div class="metric-label">Average Directional</div>
                 <div class="metric-info">Consistent predictive edge</div>
             </div>
 
             <div class="metric-card primary">
-                <div class="metric-icon">🔬</div>
+                <div class="metric-icon"><i class="fas fa-microscope"></i></div>
                 <div class="metric-value">{{ total_models_tested or 0 }} Models</div>
                 <div class="metric-label">Algorithms Tested</div>
                 <div class="metric-info">XGBoost outperformed all</div>
             </div>
         </div>
         <p class="metrics-note" style="color: rgba(255,255,255,0.9); margin-top: 1rem;">
-            <strong>Why XGBoost?</strong> After rigorous scientific comparison, XGBoost emerged as the clear winner, 
-            outperforming Random Forest, LightGBM, and CatBoost across key metrics. It achieved the best 
-            balance of price accuracy (lowest MAPE) and directional prediction (highest accuracy) across all time horizons.
+            <strong>Why XGBoost?</strong> After rigorous scientific comparison, XGBoost emerged as the clear winner,
+            outperforming Random Forest, LightGBM, and CatBoost across key metrics. It achieved the best
+            balance of price accuracy (lowest MAPE) and directional prediction (highest accuracy) across all time
+            horizons.
         </p>
         {% endif %}
     </div>
@@ -68,32 +74,36 @@
 <!-- XGBoost Performance by Horizon -->
 <section class="horizon-section">
     <h2>XGBoost Performance by Prediction Horizon</h2>
-    <p class="section-intro">Our production model's performance across different time horizons (trained on 5-year Bitcoin data)</p>
+    <p class="section-intro">Our production model's performance across different time horizons (trained on 5-year
+        Bitcoin data)</p>
 
     <div class="horizon-cards">
         {% for result in xgboost_results %}
         <div class="horizon-card">
             <h3>{{ result.horizon.upper() }} Predictions</h3>
             <div class="horizon-stats">
-                <p><strong>MAPE:</strong> <span class="{% if result.mape < 2 %}confidence-high{% elif result.mape < 3 %}confidence-medium{% else %}confidence-low{% endif %}">{{ result.mape }}%</span></p>
+                <p><strong>MAPE:</strong> <span
+                        class="{% if result.mape < 2 %}confidence-high{% elif result.mape < 3 %}confidence-medium{% else %}confidence-low{% endif %}">{{
+                        result.mape }}%</span></p>
                 <p><strong>MAE:</strong> ${{ "{:,.0f}".format(result.mae) }}</p>
                 <p><strong>Directional Accuracy:</strong> {{ result.directional }}%</p>
                 <p><strong>R²:</strong> {{ "%.4f"|format(result.r2) }}</p>
 
-                {% if result.mape < 2 %}
-                <p><strong>Quality:</strong> <span class="confidence-high">⭐ Excellent</span></p>
-                <p><strong>Use Case:</strong> Short-term trading, daily signals</p>
-                {% elif result.mape < 3 %}
-                <p><strong>Quality:</strong> <span class="confidence-medium">✅ Good</span></p>
-                <p><strong>Use Case:</strong> Medium-term positioning</p>
-                {% else %}
-                <p><strong>Quality:</strong> <span class="confidence-low">✅ Good</span></p>
-                <p><strong>Use Case:</strong> Weekly trend analysis</p>
-                {% endif %}
+                {% if result.mape < 2 %} <p><strong>Quality:</strong> <span class="confidence-high"><i
+                            class="fas fa-star"></i> Excellent</span></p>
+                    <p><strong>Use Case:</strong> Short-term trading, daily signals</p>
+                    {% elif result.mape < 3 %} <p><strong>Quality:</strong> <span class="confidence-medium"><i
+                                class="fas fa-check-circle"></i> Good</span></p>
+                        <p><strong>Use Case:</strong> Medium-term positioning</p>
+                        {% else %}
+                        <p><strong>Quality:</strong> <span class="confidence-low"><i class="fas fa-check-circle"></i>
+                                Good</span></p>
+                        <p><strong>Use Case:</strong> Weekly trend analysis</p>
+                        {% endif %}
 
-                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
-                    <strong>Test Set:</strong> {{ result.test_samples }} samples (15% holdout)
-                </p>
+                        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+                            <strong>Test Set:</strong> {{ result.test_samples }} samples (15% holdout)
+                        </p>
             </div>
         </div>
         {% endfor %}
@@ -104,14 +114,16 @@
 <section class="comparison-section">
     <h2>🔬 Model Selection Study ({{ study_date }})</h2>
     <p class="section-intro">
-        We conducted a rigorous comparison of 4 machine learning algorithms to scientifically select the best model for Bitcoin price prediction.
+        We conducted a rigorous comparison of 4 machine learning algorithms to scientifically select the best model for
+        Bitcoin price prediction.
         This was a <strong>one-time validation study</strong> - the results are static and demonstrate our methodology.
     </p>
 
     <!-- Model Comparison Summary -->
     <div class="card highlight-card" style="margin-bottom: 2rem;">
         <h3>Summary: Why XGBoost?</h3>
-        <p style="margin-bottom: 1.5rem;">After testing XGBoost, Random Forest, LightGBM, and CatBoost across 3 prediction horizons (1d, 3d, 7d), here's how they performed:</p>
+        <p style="margin-bottom: 1.5rem;">After testing XGBoost, Random Forest, LightGBM, and CatBoost across 3
+            prediction horizons (1d, 3d, 7d), here's how they performed:</p>
 
         <div class="table-container">
             <table class="results-table">
@@ -129,14 +141,15 @@
                 <tbody>
                     {% for model in model_averages %}
                     {% set idx = loop.index0 %}
-                    <tr class="{% if idx == 0 %}best-model{% elif model.model == 'random_forest' %}worst-model{% endif %}">
+                    <tr
+                        class="{% if idx == 0 %}best-model{% elif model.model == 'random_forest' %}worst-model{% endif %}">
                         <td>
                             {% if idx == 0 %}
-                            <span class="rank-badge gold">🥇</span>
+                            <span class="rank-badge gold"><i class="fas fa-medal"></i></span>
                             {% elif idx == 1 %}
-                            <span class="rank-badge silver">🥈</span>
+                            <span class="rank-badge silver">2</span>
                             {% elif idx == 2 %}
-                            <span class="rank-badge bronze">🥉</span>
+                            <span class="rank-badge bronze">3</span>
                             {% else %}
                             {{ idx + 1 }}
                             {% endif %}
@@ -148,9 +161,11 @@
                         <td>{{ model.rating }}</td>
                         <td>
                             {% if idx == 0 %}
-                            <span style="color: #10b981; font-weight: bold;">✅ {{ model.verdict }}</span>
+                            <span style="color: #10b981; font-weight: bold;"><i class="fas fa-check-circle"></i> {{
+                                model.verdict }}</span>
                             {% elif model.model == 'random_forest' %}
-                            <span style="color: #ef4444; font-weight: bold;">❌ {{ model.verdict }}</span>
+                            <span style="color: #ef4444; font-weight: bold;"><i class="fas fa-times-circle"></i> {{
+                                model.verdict }}</span>
                             {% else %}
                             <span style="color: #f59e0b;">{{ model.verdict }}</span>
                             {% endif %}
@@ -163,31 +178,45 @@
     </div>
 
     <!-- Key Findings -->
-    <div class="card highlight-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 2rem;">
+    <div class="card highlight-card"
+        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 2rem;">
         <h3 style="color: white;">📌 Key Findings from Model Comparison</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
             <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;">✅ Gradient Boosting Dominates</h4>
-                <p style="margin: 0;">XGBoost, LightGBM, and CatBoost average between <strong>{{ "%.2f"|format(gradient_stats.min_mape|default(0)) }}%–{{ "%.2f"|format(gradient_stats.max_mape|default(0)) }}% MAPE</strong> (mean {{ "%.2f"|format(gradient_stats.avg_mape|default(0)) }}%). Gradient boosting clearly outperforms traditional ensembles.</p>
+                <h4 style="color: white; margin-top: 0;"><i class="fas fa-check-circle"></i> Gradient Boosting Dominates
+                </h4>
+                <p style="margin: 0;">XGBoost, LightGBM, and CatBoost average between <strong>{{
+                        "%.2f"|format(gradient_stats.min_mape|default(0)) }}%–{{
+                        "%.2f"|format(gradient_stats.max_mape|default(0)) }}% MAPE</strong> (mean {{
+                    "%.2f"|format(gradient_stats.avg_mape|default(0)) }}%). Gradient boosting clearly outperforms
+                    traditional ensembles.</p>
             </div>
             <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;">🥇 XGBoost: Best Directional</h4>
-                <p style="margin: 0;">XGBoost achieved <strong>{{ "%.1f"|format(xgb_summary.avg_directional|default(0)) }}% average directional accuracy</strong>, the best among all models. Critical for trading signals.</p>
+                <h4 style="color: white; margin-top: 0;"><i class="fas fa-medal"></i> XGBoost: Best Directional</h4>
+                <p style="margin: 0;">XGBoost achieved <strong>{{ "%.1f"|format(xgb_summary.avg_directional|default(0))
+                        }}% average directional accuracy</strong>, the best among all models. Critical for trading
+                    signals.</p>
             </div>
             <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;">❌ Random Forest: Severe Overfitting</h4>
-                <p style="margin: 0;">Random Forest showed <strong>R² = {{ "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7d predictions</strong> (worse than predicting the mean). Not suitable for crypto.</p>
+                <h4 style="color: white; margin-top: 0;"><i class="fas fa-times-circle"></i> Random Forest: Severe
+                    Overfitting</h4>
+                <p style="margin: 0;">Random Forest showed <strong>R² = {{
+                        "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7d predictions</strong> (worse than
+                    predicting the mean). Not suitable for crypto.</p>
             </div>
             <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;">💡 Future: Ensemble Approach</h4>
-                <p style="margin: 0;">Combining XGBoost + LightGBM + CatBoost predictions could further improve robustness and reduce variance.</p>
+                <h4 style="color: white; margin-top: 0;"><i class="fas fa-lightbulb"></i> Future: Ensemble Approach</h4>
+                <p style="margin: 0;">Combining XGBoost + LightGBM + CatBoost predictions could further improve
+                    robustness and reduce variance.</p>
             </div>
         </div>
     </div>
 
     <!-- Detailed Comparison (Collapsible) -->
     <details style="margin-top: 2rem;">
-        <summary style="cursor: pointer; font-size: 1.2rem; font-weight: bold; padding: 1rem; background: #f3f4f6; border-radius: 8px; margin-bottom: 1rem;">
+        <summary
+            style="cursor: pointer; font-size: 1.2rem; font-weight: bold; padding: 1rem; background: #f3f4f6; border-radius: 8px; margin-bottom: 1rem;">
             📊 View Full Comparison Details ({{ comparison_study|length }} Models Tested)
         </summary>
 
@@ -206,31 +235,36 @@
                 </thead>
                 <tbody>
                     {% for result in comparison_study %}
-                    <tr class="{% if result.model == 'xgboost' %}best-model{% elif result.model == 'random_forest' %}worst-model{% endif %}">
+                    <tr
+                        class="{% if result.model == 'xgboost' %}best-model{% elif result.model == 'random_forest' %}worst-model{% endif %}">
                         <td><strong>{{ result.model|title|replace('_', ' ') }}</strong></td>
                         <td><span class="badge badge-{{ result.horizon }}">{{ result.horizon }}</span></td>
                         <td>{{ result.mape }}%</td>
                         <td>${{ "{:,.0f}".format(result.mae) }}</td>
                         <td>
                             {% if result.directional > 52 %}
-                            <span style="color: #10b981;">✅ {{ result.directional }}%</span>
+                            <span style="color: #10b981;"><i class="fas fa-check-circle"></i> {{ result.directional
+                                }}%</span>
                             {% elif result.directional >= 48 %}
-                            <span style="color: #f59e0b;">⚠️ {{ result.directional }}%</span>
+                            <span style="color: #f59e0b;"><i class="fas fa-exclamation-triangle"></i> {{
+                                result.directional }}%</span>
                             {% else %}
-                            <span style="color: #ef4444;">❌ {{ result.directional }}%</span>
+                            <span style="color: #ef4444;"><i class="fas fa-times-circle"></i> {{ result.directional
+                                }}%</span>
                             {% endif %}
                         </td>
                         <td>{{ "%.4f"|format(result.r2) }}</td>
                         <td>
-                            {% if result.mape < 2 %}
-                            <span style="color: #10b981;">⭐ Excellent</span>
-                            {% elif result.mape < 3 %}
-                            <span style="color: #10b981;">✅ Good</span>
-                            {% elif result.mape < 5 %}
-                            <span style="color: #f59e0b;">✅ Good</span>
-                            {% else %}
-                            <span style="color: #ef4444;">⚠️ Acceptable</span>
-                            {% endif %}
+                            {% if result.mape < 2 %} <span style="color: #10b981;"><i class="fas fa-star"></i>
+                                Excellent</span>
+                                {% elif result.mape < 3 %} <span style="color: #10b981;"><i
+                                        class="fas fa-check-circle"></i> Good</span>
+                                    {% elif result.mape < 5 %} <span style="color: #f59e0b;"><i
+                                            class="fas fa-check-circle"></i> Good</span>
+                                        {% else %}
+                                        <span style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i>
+                                            Acceptable</span>
+                                        {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -259,15 +293,18 @@
     <div class="insights-grid">
         <div class="insight-card">
             <h3>📊 5-Year Data Window</h3>
-            <p>We use 5 years of daily Bitcoin data (2020-2025) instead of 10 years. Testing showed that <strong>recent data is more predictive</strong> than distant history due to market regime evolution.</p>
+            <p>We use 5 years of daily Bitcoin data (2020-2025) instead of 10 years. Testing showed that <strong>recent
+                    data is more predictive</strong> than distant history due to market regime evolution.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
-                See: <a href="/static/docs/10Y_VS_5Y_COMPARISON.html" style="color: #6366f1;">5y vs 10y Comparison Study</a>
+                See: <a href="/static/docs/10Y_VS_5Y_COMPARISON.html" style="color: #6366f1;">5y vs 10y Comparison
+                    Study</a>
             </p>
         </div>
 
         <div class="insight-card">
             <h3>🔄 Return-Based Prediction</h3>
-            <p><strong>Critical innovation:</strong> We predict percentage returns, not absolute prices. This eliminates systematic bias in tree-based models that cannot extrapolate beyond training data.</p>
+            <p><strong>Critical innovation:</strong> We predict percentage returns, not absolute prices. This eliminates
+                systematic bias in tree-based models that cannot extrapolate beyond training data.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem;">
                 Formula: <code>predicted_price = current_price × (1 + predicted_return)</code>
             </p>
@@ -275,7 +312,8 @@
 
         <div class="insight-card">
             <h3>🎯 58 Engineered Features</h3>
-            <p>Technical indicators (RSI, MACD, Bollinger Bands), lag features, rolling statistics, sentiment data (Fear & Greed Index), and interaction features.</p>
+            <p>Technical indicators (RSI, MACD, Bollinger Bands), lag features, rolling statistics, sentiment data (Fear
+                & Greed Index), and interaction features.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
                 Raw OHLCV data → 58 features → Return targets
             </p>
@@ -283,7 +321,8 @@
 
         <div class="insight-card">
             <h3>✅ Rigorous Testing</h3>
-            <p><strong>Chronological split:</strong> 70% train, 15% validation, 15% test. No data leakage. Test set contains only future data never seen during training.</p>
+            <p><strong>Chronological split:</strong> 70% train, 15% validation, 15% test. No data leakage. Test set
+                contains only future data never seen during training.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem;">
                 Current test set: {{ xgboost_results[0].test_samples if xgboost_results|length > 0 else 245 }} samples
             </p>
@@ -291,7 +330,8 @@
 
         <div class="insight-card">
             <h3>📈 R² Near Zero is Normal</h3>
-            <p>R² ≈ 0 is <strong>expected for crypto returns</strong> due to high noise and random walk behavior. Our models achieve R² close to 0, which is optimal (not negative like Random Forest).</p>
+            <p>R² ≈ 0 is <strong>expected for crypto returns</strong> due to high noise and random walk behavior. Our
+                models achieve R² close to 0, which is optimal (not negative like Random Forest).</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
                 Primary metrics: MAPE and Directional Accuracy
             </p>
@@ -299,7 +339,8 @@
 
         <div class="insight-card">
             <h3>🚀 Future Enhancements</h3>
-            <p><strong>Planned improvements:</strong> Ensemble predictions (XGBoost + LightGBM + CatBoost), market regime detection, time-weighted training, rolling window optimization.</p>
+            <p><strong>Planned improvements:</strong> Ensemble predictions (XGBoost + LightGBM + CatBoost), market
+                regime detection, time-weighted training, rolling window optimization.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
                 Expected improvement: 5-10% better robustness
             </p>
@@ -309,36 +350,53 @@
 
 <!-- Why Not Random Forest? -->
 <section class="bias-section">
-    <div class="card highlight-card" style="background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 100%); color: white;">
-        <h2 style="color: white;">❌ Why Random Forest Failed</h2>
-        <div class="bias-grid" style="color: white;">
-            <div>
-                <h3 style="color: white;">The Problem</h3>
+    <div class="card highlight-card"
+        style="background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 100%); color: white;">
+        <div class="card highlight-card"
+            style="background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 100%); color: white;">
+            <h2 style="color: white;"><i class="fas fa-times-circle"></i> Why Random Forest Failed</h2>
+            <div class="bias-grid" style="color: white;">
                 <div>
-                    <p>❌ <strong>Severe Overfitting:</strong> R² = {{ "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7-day predictions (worse than predicting the mean)</p>
-                    <p>❌ <strong>Poor Directional Accuracy:</strong> {{ "%.1f"|format(random_forest_stats.avg_directional|default(0)) }}% average (worse than random 50%)</p>
-                    <p>❌ <strong>Highest MAPE:</strong> {{ "%.2f"|format(random_forest_stats.avg_mape|default(0)) }}% average ({{ "%.1f"|format(random_forest_stats.relative_mape_increase|default(0)) }}% worse than XGBoost's {{ "%.2f"|format(xgb_summary.avg_mape|default(0)) }}%)</p>
-                    <p>❌ <strong>Cannot Extrapolate:</strong> RF averages training outputs, fails when prices exceed training range</p>
+                    <h3 style="color: white;">The Problem</h3>
+                    <div>
+                        <p><i class="fas fa-times-circle"></i> <strong>Severe Overfitting:</strong> R² = {{
+                            "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7-day predictions (worse than
+                            predicting the mean)</p>
+                        <p><i class="fas fa-times-circle"></i> <strong>Poor Directional Accuracy:</strong> {{
+                            "%.1f"|format(random_forest_stats.avg_directional|default(0)) }}% average (worse than random
+                            50%)</p>
+                        <p><i class="fas fa-times-circle"></i> <strong>Highest MAPE:</strong> {{
+                            "%.2f"|format(random_forest_stats.avg_mape|default(0)) }}% average ({{
+                            "%.1f"|format(random_forest_stats.relative_mape_increase|default(0)) }}% worse than
+                            XGBoost's {{ "%.2f"|format(xgb_summary.avg_mape|default(0)) }}%)</p>
+                        <p><i class="fas fa-times-circle"></i> <strong>Cannot Extrapolate:</strong> RF averages training
+                            outputs, fails when prices exceed training range</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: white;">Why It Happens</h3>
+                    <div>
+                        <p><i class="fas fa-magnifying-glass"></i> <strong>Non-stationary data:</strong> Bitcoin price
+                            dynamics change over time</p>
+                        <p><i class="fas fa-magnifying-glass"></i> <strong>High noise:</strong> Crypto markets are
+                            extremely volatile with low signal-to-noise ratio</p>
+                        <p><i class="fas fa-magnifying-glass"></i> <strong>Return-based targets:</strong> RF struggles
+                            with small returns centered around 0</p>
+                        <p><i class="fas fa-magnifying-glass"></i> <strong>Limited expressiveness:</strong> Decision
+                            trees cannot capture complex patterns as well as gradient boosting</p>
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <h3 style="color: white;">Why It Happens</h3>
-                <div>
-                    <p>🔍 <strong>Non-stationary data:</strong> Bitcoin price dynamics change over time</p>
-                    <p>🔍 <strong>High noise:</strong> Crypto markets are extremely volatile with low signal-to-noise ratio</p>
-                    <p>🔍 <strong>Return-based targets:</strong> RF struggles with small returns centered around 0</p>
-                    <p>🔍 <strong>Limited expressiveness:</strong> Decision trees cannot capture complex patterns as well as gradient boosting</p>
-                </div>
+            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                <p style="margin: 0; font-weight: bold;">
+                    <i class="fas fa-lightbulb"></i> Conclusion: For cryptocurrency prediction, <strong>gradient
+                        boosting models (XGBoost, LightGBM, CatBoost) are significantly superior</strong> to Random
+                    Forest. Always prefer gradient boosting for financial time series with high volatility.
+                </p>
             </div>
         </div>
-
-        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-            <p style="margin: 0; font-weight: bold;">
-                💡 Conclusion: For cryptocurrency prediction, <strong>gradient boosting models (XGBoost, LightGBM, CatBoost) are significantly superior</strong> to Random Forest. Always prefer gradient boosting for financial time series with high volatility.
-            </p>
-        </div>
-    </div>
 </section>
 
 <div class="nav-buttons">
@@ -351,123 +409,123 @@
 {% block extra_scripts %}
 <script id="comparison-data" type="application/json">{{ comparison_study|tojson }}</script>
 <script>
-// Pass comparison data to JavaScript
-const comparisonData = JSON.parse(document.getElementById('comparison-data').textContent);
+    // Pass comparison data to JavaScript
+    const comparisonData = JSON.parse(document.getElementById('comparison-data').textContent);
 
-// Group data by model and horizon
-const models = ['xgboost', 'random_forest', 'lightgbm', 'catboost'];
-const horizons = ['1d', '3d', '7d'];
+    // Group data by model and horizon
+    const models = ['xgboost', 'random_forest', 'lightgbm', 'catboost'];
+    const horizons = ['1d', '3d', '7d'];
 
-// Model colors
-const modelColors = {
-    'xgboost': { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgb(99, 102, 241)' },      // Indigo (Winner)
-    'random_forest': { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgb(239, 68, 68)' }, // Red (Failed)
-    'lightgbm': { bg: 'rgba(245, 158, 11, 0.8)', border: 'rgb(245, 158, 11)' },    // Amber
-    'catboost': { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgb(16, 185, 129)' }     // Green
-};
+    // Model colors
+    const modelColors = {
+        'xgboost': { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgb(99, 102, 241)' },      // Indigo (Winner)
+        'random_forest': { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgb(239, 68, 68)' }, // Red (Failed)
+        'lightgbm': { bg: 'rgba(245, 158, 11, 0.8)', border: 'rgb(245, 158, 11)' },    // Amber
+        'catboost': { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgb(16, 185, 129)' }     // Green
+    };
 
-// Extract MAPE data
-function getMapeByModel(model) {
-    return horizons.map(horizon => {
-        const result = comparisonData.find(r => r.model === model && r.horizon === horizon);
-        return result ? result.mape : 0;
-    });
-}
+    // Extract MAPE data
+    function getMapeByModel(model) {
+        return horizons.map(horizon => {
+            const result = comparisonData.find(r => r.model === model && r.horizon === horizon);
+            return result ? result.mape : 0;
+        });
+    }
 
-// Extract Directional Accuracy data
-function getDirectionalByModel(model) {
-    return horizons.map(horizon => {
-        const result = comparisonData.find(r => r.model === model && r.horizon === horizon);
-        return result ? result.directional : 0;
-    });
-}
+    // Extract Directional Accuracy data
+    function getDirectionalByModel(model) {
+        return horizons.map(horizon => {
+            const result = comparisonData.find(r => r.model === model && r.horizon === horizon);
+            return result ? result.directional : 0;
+        });
+    }
 
-// Create MAPE Comparison Chart
-const mapeCtx = document.getElementById('mapeComparisonChart');
-if (mapeCtx) {
-    new Chart(mapeCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: horizons,
-            datasets: models.map(model => ({
-                label: model.charAt(0).toUpperCase() + model.slice(1).replace('_', ' '),
-                data: getMapeByModel(model),
-                backgroundColor: modelColors[model].bg,
-                borderColor: modelColors[model].border,
-                borderWidth: 2
-            }))
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true, position: 'top' },
-                title: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
-                        }
-                    }
-                }
+    // Create MAPE Comparison Chart
+    const mapeCtx = document.getElementById('mapeComparisonChart');
+    if (mapeCtx) {
+        new Chart(mapeCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: horizons,
+                datasets: models.map(model => ({
+                    label: model.charAt(0).toUpperCase() + model.slice(1).replace('_', ' '),
+                    data: getMapeByModel(model),
+                    backgroundColor: modelColors[model].bg,
+                    borderColor: modelColors[model].border,
+                    borderWidth: 2
+                }))
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: 'MAPE (%) - Lower is Better' }
-                },
-                x: {
-                    title: { display: true, text: 'Prediction Horizon' }
-                }
-            }
-        }
-    });
-}
-
-// Create Directional Accuracy Comparison Chart
-const dirCtx = document.getElementById('directionalComparisonChart');
-if (dirCtx) {
-    new Chart(dirCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: horizons,
-            datasets: models.map(model => ({
-                label: model.charAt(0).toUpperCase() + model.slice(1).replace('_', ' '),
-                data: getDirectionalByModel(model),
-                backgroundColor: modelColors[model].bg,
-                borderColor: modelColors[model].border,
-                borderWidth: 2
-            }))
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true, position: 'top' },
-                title: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    min: 40,
-                    max: 60,
-                    title: { display: true, text: 'Directional Accuracy (%) - Higher is Better' },
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    title: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                            }
                         }
                     }
                 },
-                x: {
-                    title: { display: true, text: 'Prediction Horizon' }
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'MAPE (%) - Lower is Better' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Prediction Horizon' }
+                    }
                 }
             }
-        }
-    });
-}
+        });
+    }
+
+    // Create Directional Accuracy Comparison Chart
+    const dirCtx = document.getElementById('directionalComparisonChart');
+    if (dirCtx) {
+        new Chart(dirCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: horizons,
+                datasets: models.map(model => ({
+                    label: model.charAt(0).toUpperCase() + model.slice(1).replace('_', ' '),
+                    data: getDirectionalByModel(model),
+                    backgroundColor: modelColors[model].bg,
+                    borderColor: modelColors[model].border,
+                    borderWidth: 2
+                }))
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    title: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 40,
+                        max: 60,
+                        title: { display: true, text: 'Directional Accuracy (%) - Higher is Better' },
+                        ticks: {
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        title: { display: true, text: 'Prediction Horizon' }
+                    }
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}

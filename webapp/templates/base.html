@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Bitcoin Price Prediction{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
     <nav class="navbar">
         <div class="container">
@@ -17,8 +21,9 @@
             </div>
             <ul class="nav-menu">
                 <li>
-                    <a href="{{ url_for('methodology') }}" class="nav-tab {% if request.endpoint == 'methodology' %}active{% endif %}">
-                        <span class="nav-icon">📊</span>
+                    <a href="{{ url_for('methodology') }}"
+                        class="nav-tab {% if request.endpoint == 'methodology' %}active{% endif %}">
+                        <span class="nav-icon"><i class="fas fa-flask"></i></span>
                         <span class="nav-text">
                             <span class="nav-title">Methodology</span>
                             <span class="nav-subtitle">How it works</span>
@@ -26,8 +31,9 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ url_for('results') }}" class="nav-tab {% if request.endpoint == 'results' %}active{% endif %}">
-                        <span class="nav-icon">📈</span>
+                    <a href="{{ url_for('results') }}"
+                        class="nav-tab {% if request.endpoint == 'results' %}active{% endif %}">
+                        <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
                         <span class="nav-text">
                             <span class="nav-title">Test Results</span>
                             <span class="nav-subtitle">Model performance</span>
@@ -35,8 +41,9 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ url_for('live') }}" class="nav-tab {% if request.endpoint == 'live' %}active{% endif %}">
-                        <span class="nav-icon">⚡</span>
+                    <a href="{{ url_for('live') }}"
+                        class="nav-tab {% if request.endpoint == 'live' %}active{% endif %}">
+                        <span class="nav-icon"><i class="fas fa-bolt"></i></span>
                         <span class="nav-text">
                             <span class="nav-title">Live Performance</span>
                             <span class="nav-subtitle">Real-time tracking</span>
@@ -44,8 +51,9 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ url_for('architecture') }}" class="nav-tab {% if request.endpoint == 'architecture' %}active{% endif %}">
-                        <span class="nav-icon">🏗️</span>
+                    <a href="{{ url_for('architecture') }}"
+                        class="nav-tab {% if request.endpoint == 'architecture' %}active{% endif %}">
+                        <span class="nav-icon"><i class="fas fa-network-wired"></i></span>
                         <span class="nav-text">
                             <span class="nav-title">Architecture</span>
                             <span class="nav-subtitle">How it's built</span>
@@ -70,4 +78,5 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>

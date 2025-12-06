@@ -3,7 +3,8 @@
 {% block title %}Methodology - Bitcoin Price Prediction{% endblock %}
 
 {% block content %}
-<div class="page-header page-header-with-bg" style="background-image: url({{ url_for('static', filename='images/bitcoin1.jpg') }});">
+<div class="page-header page-header-with-bg"
+    style="background-image: url({{ url_for('static', filename='images/bitcoin1.jpg') }});">
     <h1>Bitcoin Price Prediction</h1>
     <p class="page-subtitle">Return-Based BitCoin Price Prediction</p>
 </div>
@@ -12,33 +13,33 @@
 <section class="toc-section-compact">
     <span class="toc-label">Jump to:</span>
     <div class="toc-pills">
-        <a href="#quick-stats" class="toc-pill">📊 Key Metrics</a>
-        <a href="#approach" class="toc-pill">🎯 Our Approach</a>
-        <a href="#features" class="toc-pill">📈 Features</a>
-        <a href="#models" class="toc-pill">🤖 Models</a>
-        <a href="#pipeline" class="toc-pill">⚙️ Pipeline</a>
+        <a href="#quick-stats" class="toc-pill"><i class="fas fa-chart-column"></i> Key Metrics</a>
+        <a href="#approach" class="toc-pill"><i class="fas fa-bullseye"></i> Our Approach</a>
+        <a href="#features" class="toc-pill"><i class="fas fa-chart-line"></i> Features</a>
+        <a href="#models" class="toc-pill"><i class="fas fa-robot"></i> Models</a>
+        <a href="#pipeline" class="toc-pill"><i class="fas fa-cogs"></i> Pipeline</a>
     </div>
 </section>
 
 <!-- Quick Stats -->
 <section id="quick-stats" class="quick-stats">
     <div class="stat-card">
-        <div class="stat-icon">🎯</div>
+        <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
         <div class="stat-value">1.53%</div>
         <div class="stat-label">Best Price Error (1d MAPE)</div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon">📊</div>
+        <div class="stat-icon"><i class="fas fa-database"></i></div>
         <div class="stat-value">58</div>
         <div class="stat-label">Features (Daily + Sentiment)</div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon">✅</div>
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
         <div class="stat-value">56.6%</div>
         <div class="stat-label">Best Directional (7-Day)</div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon">⚡</div>
+        <div class="stat-icon"><i class="fas fa-bolt"></i></div>
         <div class="stat-value">3</div>
         <div class="stat-label">Live Daily Horizons</div>
     </div>
@@ -49,20 +50,23 @@
     <div class="card">
         <h2>Return-Based Prediction Approach</h2>
         <div class="approach-with-image">
-            <div class="approach-image" style="background-image: url({{ url_for('static', filename='images/bitcoin2.jpg') }});"></div>
+            <div class="approach-image"
+                style="background-image: url({{ url_for('static', filename='images/bitcoin2.jpg') }});"></div>
             <div class="approach-content">
                 <div class="approach-box">
-                    <div class="approach-icon">✅</div>
+                    <div class="approach-icon"><i class="fas fa-check-circle"></i></div>
                     <h3>What We Predict</h3>
-                    <p class="approach-text"><strong>Percentage changes</strong> (returns) instead of absolute prices</p>
+                    <p class="approach-text"><strong>Percentage changes</strong> (returns) instead of absolute prices
+                    </p>
                     <div class="formula-simple">
                         return = (future_price - current_price) / current_price
                     </div>
                 </div>
                 <div class="approach-box">
-                    <div class="approach-icon">🎯</div>
+                    <div class="approach-icon"><i class="fas fa-bullseye"></i></div>
                     <h3>Why It Works</h3>
-                    <p class="approach-text">Returns are <strong>bounded</strong> (-10% to +10%) and work at any price level</p>
+                    <p class="approach-text">Returns are <strong>bounded</strong> (-10% to +10%) and work at any price
+                        level</p>
                     <div class="formula-simple">
                         predicted_price = current_price × (1 + predicted_return)
                     </div>
@@ -75,13 +79,14 @@
 <!-- Feature Categories - Collapsible -->
 <section id="features" class="features-section">
     <h2>58 Engineered Features</h2>
-    <p class="section-intro-small">Live production models use 58 features (55 technical + 3 sentiment). Click any category to see details.</p>
+    <p class="section-intro-small">Live production models use 58 features (55 technical + 3 sentiment). Click any
+        category to see details.</p>
 
     <div class="feature-grid">
         <!-- Technical Indicators -->
         <div class="feature-category-card" onclick="toggleFeature('technical')">
             <div class="feature-card-header">
-                <div class="feature-icon">📈</div>
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
                 <div class="feature-card-content">
                     <h3>Technical Indicators</h3>
                     <p class="feature-count">20 features</p>
@@ -121,7 +126,7 @@
         <!-- Volume Indicators -->
         <div class="feature-category-card" onclick="toggleFeature('volume')">
             <div class="feature-card-header">
-                <div class="feature-icon">📊</div>
+                <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
                 <div class="feature-card-content">
                     <h3>Volume Indicators</h3>
                     <p class="feature-count">3 features</p>
@@ -145,7 +150,7 @@
         <!-- Lag Features -->
         <div class="feature-category-card" onclick="toggleFeature('lag')">
             <div class="feature-card-header">
-                <div class="feature-icon">⏮️</div>
+                <div class="feature-icon"><i class="fas fa-history"></i></div>
                 <div class="feature-card-content">
                     <h3>Lag Features</h3>
                     <p class="feature-count">8 features</p>
@@ -197,7 +202,7 @@
         <!-- Returns & Momentum -->
         <div class="feature-category-card" onclick="toggleFeature('returns')">
             <div class="feature-card-header">
-                <div class="feature-icon">⚡</div>
+                <div class="feature-icon"><i class="fas fa-bolt"></i></div>
                 <div class="feature-card-content">
                     <h3>Returns & Momentum</h3>
                     <p class="feature-count">5 features</p>
@@ -229,7 +234,7 @@
         <!-- Interaction Features -->
         <div class="feature-category-card" onclick="toggleFeature('interaction')">
             <div class="feature-card-header">
-                <div class="feature-icon">🔗</div>
+                <div class="feature-icon"><i class="fas fa-link"></i></div>
                 <div class="feature-card-content">
                     <h3>Interaction Features</h3>
                     <p class="feature-count">2 features</p>
@@ -253,7 +258,7 @@
         <!-- Sentiment Features (Daily Models Only) -->
         <div class="feature-category-card" onclick="toggleFeature('sentiment')">
             <div class="feature-card-header">
-                <div class="feature-icon">😨😊</div>
+                <div class="feature-icon"><i class="fas fa-gauge-high"></i></div>
                 <div class="feature-card-content">
                     <h3>Sentiment Features</h3>
                     <p class="feature-count">3 features (daily only)</p>
@@ -266,17 +271,20 @@
                 <div class="feature-item">
                     <strong>Fear & Greed Index</strong>
                     <p><strong>Formula:</strong> Composite score (0-100) from CNN Fear & Greed API</p>
-                    <p><strong>Description:</strong> Market sentiment indicator. 0-25 = Extreme Fear (buy signal), 75-100 = Extreme Greed (sell signal). Only available for daily models.</p>
+                    <p><strong>Description:</strong> Market sentiment indicator. 0-25 = Extreme Fear (buy signal),
+                        75-100 = Extreme Greed (sell signal). Only available for daily models.</p>
                 </div>
                 <div class="feature-item">
                     <strong>Fear & Greed Daily Change</strong>
                     <p><strong>Formula:</strong> fear_greed_change = fear_greed_today - fear_greed_yesterday</p>
-                    <p><strong>Description:</strong> Sentiment momentum. Positive = sentiment improving, negative = sentiment deteriorating.</p>
+                    <p><strong>Description:</strong> Sentiment momentum. Positive = sentiment improving, negative =
+                        sentiment deteriorating.</p>
                 </div>
                 <div class="feature-item">
                     <strong>Fear & Greed 7-Day MA</strong>
                     <p><strong>Formula:</strong> fear_greed_ma_7d = mean(fear_greed_value, last 7 days)</p>
-                    <p><strong>Description:</strong> Smoothed sentiment trend. Helps filter out daily noise in sentiment readings.</p>
+                    <p><strong>Description:</strong> Smoothed sentiment trend. Helps filter out daily noise in sentiment
+                        readings.</p>
                 </div>
             </div>
         </div>
@@ -344,28 +352,28 @@
 </div>
 
 <script>
-function toggleFeature(category) {
-    const panel = document.getElementById('details-' + category);
-    const icon = document.getElementById('icon-' + category);
-    const allPanels = document.querySelectorAll('.feature-details-panel');
-    const allIcons = document.querySelectorAll('.expand-icon');
+    function toggleFeature(category) {
+        const panel = document.getElementById('details-' + category);
+        const icon = document.getElementById('icon-' + category);
+        const allPanels = document.querySelectorAll('.feature-details-panel');
+        const allIcons = document.querySelectorAll('.expand-icon');
 
-    // Check if this panel is currently open
-    const isOpen = panel.style.display === 'block';
+        // Check if this panel is currently open
+        const isOpen = panel.style.display === 'block';
 
-    // Close all panels
-    allPanels.forEach(p => p.style.display = 'none');
-    allIcons.forEach(i => i.textContent = '▼');
+        // Close all panels
+        allPanels.forEach(p => p.style.display = 'none');
+        allIcons.forEach(i => i.textContent = '▼');
 
-    // If it wasn't open, open it
-    if (!isOpen) {
-        panel.style.display = 'block';
-        icon.textContent = '▲';
-        // Smooth scroll to panel
-        setTimeout(() => {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
+        // If it wasn't open, open it
+        if (!isOpen) {
+            panel.style.display = 'block';
+            icon.textContent = '▲';
+            // Smooth scroll to panel
+            setTimeout(() => {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
     }
-}
 </script>
 {% endblock %}
