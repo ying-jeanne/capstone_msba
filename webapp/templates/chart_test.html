@@ -1,17 +1,44 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Chart Test - Minimal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
-        .status { padding: 15px; margin: 10px 0; border-radius: 5px; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
-        #chartContainer { background: white; padding: 30px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        #chartContainer {
+            background: white;
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
+
 <body>
-    <h1>📊 Chart.js Test</h1>
+    <h1><i class="fas fa-chart-line"></i> Chart.js Test</h1>
     <div id="statusLog"></div>
     <div id="chartContainer">
         <h2>Predicted vs Actual Prices</h2>
@@ -39,36 +66,36 @@
             .then(data => {
                 log('Step 4: Parsed JSON, status = ' + data.status);
                 log('Step 5: Predictions count = ' + (data.predictions ? data.predictions.length : 0));
-                
+
                 if (!data.predictions || data.predictions.length === 0) {
                     log('ERROR: No predictions in response!', true);
                     return;
                 }
-                
+
                 const first = data.predictions[0];
                 log('Step 6: First prediction date = ' + first.date);
                 log('Step 7: First actual_1d = ' + first.actual_1d + ' (type: ' + typeof first.actual_1d + ')');
-                
+
                 // Filter valid predictions
                 const valid = data.predictions.filter(p => {
                     return p.actual_1d != null && !isNaN(parseFloat(p.actual_1d));
                 });
-                
+
                 log('Step 8: Valid predictions = ' + valid.length);
-                
+
                 if (valid.length === 0) {
                     log('ERROR: No valid predictions!', true);
                     return;
                 }
-                
+
                 // Prepare data
                 const labels = valid.map(p => p.date);
                 const predicted = valid.map(p => parseFloat(p.pred_1d));
                 const actual = valid.map(p => parseFloat(p.actual_1d));
-                
+
                 log('Step 9: Prepared ' + labels.length + ' labels, ' + predicted.length + ' predicted, ' + actual.length + ' actual');
                 log('Step 10: Sample data - Date: ' + labels[0] + ', Pred: ' + predicted[0] + ', Actual: ' + actual[0]);
-                
+
                 // Get canvas
                 const canvas = document.getElementById('myChart');
                 if (!canvas) {
@@ -76,14 +103,14 @@
                     return;
                 }
                 log('Step 11: Canvas found');
-                
+
                 const ctx = canvas.getContext('2d');
                 if (!ctx) {
                     log('ERROR: Could not get 2D context!', true);
                     return;
                 }
                 log('Step 12: Got 2D context');
-                
+
                 // Create chart
                 try {
                     const chart = new Chart(ctx, {
@@ -119,4 +146,5 @@
             });
     </script>
 </body>
+
 </html>

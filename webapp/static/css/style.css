@@ -66,7 +66,7 @@
     /* Vibrant amber */
     --bitcoin-orange: #ea580c;
     /* Bitcoin Dark Orange */
-    --accent-color: #ec4899;
+    --accent-color: #ea580c;
     /* Pink accent */
     --success-color: #10b981;
     /* Modern emerald green */
@@ -2606,7 +2606,7 @@ footer {
 
 .timeline-badge.accent {
     background: rgba(71, 85, 105, 0.15);
-    color: var(--accent-color);
+    color: var(--bitcoin-orange);
 }
 
 /* Journey Cards */
