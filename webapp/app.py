@@ -484,19 +484,35 @@ def results():
                     avg_dir = model_df['directional_accuracy'].mean()
                     avg_r2 = model_df['return_test_r2'].mean()
 
-                    # Determine rating
+                    # Determine rating and icons
                     if avg_mape < 2.5 and avg_dir > 52:
-                        rating = "⭐⭐⭐ Excellent"
+                        rating = "Excellent"
+                        rating_icon = "fa-star"
+                        rating_color = "#10b981"
                         verdict = "Production Ready"
+                        verdict_color = "#10b981"
+                        verdict_icon = "fa-check-circle"
                     elif avg_mape < 3.5 and avg_dir > 50:
-                        rating = "✅✅ Good"
+                        rating = "Good"
+                        rating_icon = "fa-check-circle"
+                        rating_color = "#10b981"
                         verdict = "Good Option"
+                        verdict_color = "#10b981"
+                        verdict_icon = "fa-check-circle"
                     elif avg_mape < 4.5:
-                        rating = "✅ Acceptable"
+                        rating = "Acceptable"
+                        rating_icon = "fa-exclamation-triangle"
+                        rating_color = "#f59e0b"
                         verdict = "Use with Caution"
+                        verdict_color = "#f59e0b"
+                        verdict_icon = "fa-exclamation-triangle"
                     else:
-                        rating = "❌ Poor"
+                        rating = "Poor"
+                        rating_icon = "fa-times-circle"
+                        rating_color = "#ef4444"
                         verdict = "Not Recommended"
+                        verdict_color = "#ef4444"
+                        verdict_icon = "fa-times-circle"
 
                     model_averages.append({
                         'model': model_name,
@@ -504,7 +520,11 @@ def results():
                         'avg_directional': round(avg_dir, 1),
                         'avg_r2': round(avg_r2, 4),
                         'rating': rating,
-                        'verdict': verdict
+                        'rating_icon': rating_icon,
+                        'rating_color': rating_color,
+                        'verdict': verdict,
+                        'verdict_color': verdict_color,
+                        'verdict_icon': verdict_icon
                     })
 
             # Sort model averages by MAPE

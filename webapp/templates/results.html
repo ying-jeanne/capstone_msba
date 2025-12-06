@@ -158,18 +158,10 @@
                         <td>{{ model.avg_mape }}%</td>
                         <td>{{ model.avg_directional }}%</td>
                         <td>{{ "%.4f"|format(model.avg_r2) }}</td>
-                        <td>{{ model.rating }}</td>
-                        <td>
-                            {% if idx == 0 %}
-                            <span style="color: #10b981; font-weight: bold;"><i class="fas fa-check-circle"></i> {{
-                                model.verdict }}</span>
-                            {% elif model.model == 'random_forest' %}
-                            <span style="color: #ef4444; font-weight: bold;"><i class="fas fa-times-circle"></i> {{
-                                model.verdict }}</span>
-                            {% else %}
-                            <span style="color: #f59e0b;">{{ model.verdict }}</span>
-                            {% endif %}
-                        </td>
+                        <td><i class="fas {{ model.rating_icon }}" style="color: {{ model.rating_color }};"></i> {{
+                            model.rating }}</td>
+                        <td><i class="fas {{ model.verdict_icon }}" style="color: {{ model.verdict_color }};"></i> {{
+                            model.verdict }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
