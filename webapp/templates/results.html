@@ -55,10 +55,10 @@
             </div>
 
             <div class="metric-card primary">
-                <div class="metric-icon"><i class="fas fa-microscope"></i></div>
-                <div class="metric-value">{{ total_models_tested or 0 }} Models</div>
-                <div class="metric-label">Algorithms Tested</div>
-                <div class="metric-info">XGBoost outperformed all</div>
+                <div class="metric-icon"><i class="fas fa-trophy"></i></div>
+                <div class="metric-value">{{ "%.2f"|format(xgb_summary.best_mape|default(0)) }}%</div>
+                <div class="metric-label">Best MAPE ({{ xgb_summary.best_mape_horizon|default('1d')|upper }})</div>
+                <div class="metric-info">Industry-leading accuracy</div>
             </div>
         </div>
         <p class="metrics-note" style="color: rgba(255,255,255,0.9); margin-top: 1rem;">
@@ -178,13 +178,12 @@
     </div>
 
     <!-- Key Findings -->
-    <div class="card highlight-card"
-        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 2rem;">
-        <h3 style="color: white;">📌 Key Findings from Model Comparison</h3>
+    <div class="card highlight-card" style="margin-bottom: 2rem;">
+        <h3><i class="fas fa-thumbtack"></i> Key Findings from Model Comparison</h3>
         <div
             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;"><i class="fas fa-check-circle"></i> Gradient Boosting Dominates
+            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                <h4 style="margin-top: 0;"><i class="fas fa-check-circle"></i> Gradient Boosting Dominates
                 </h4>
                 <p style="margin: 0;">XGBoost, LightGBM, and CatBoost average between <strong>{{
                         "%.2f"|format(gradient_stats.min_mape|default(0)) }}%–{{
@@ -192,21 +191,21 @@
                     "%.2f"|format(gradient_stats.avg_mape|default(0)) }}%). Gradient boosting clearly outperforms
                     traditional ensembles.</p>
             </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;"><i class="fas fa-medal"></i> XGBoost: Best Directional</h4>
+            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                <h4 style="margin-top: 0;"><i class="fas fa-medal"></i> XGBoost: Best Directional</h4>
                 <p style="margin: 0;">XGBoost achieved <strong>{{ "%.1f"|format(xgb_summary.avg_directional|default(0))
                         }}% average directional accuracy</strong>, the best among all models. Critical for trading
                     signals.</p>
             </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;"><i class="fas fa-times-circle"></i> Random Forest: Severe
+            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                <h4 style="margin-top: 0;"><i class="fas fa-times-circle"></i> Random Forest: Severe
                     Overfitting</h4>
                 <p style="margin: 0;">Random Forest showed <strong>R² = {{
                         "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7d predictions</strong> (worse than
                     predicting the mean). Not suitable for crypto.</p>
             </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                <h4 style="color: white; margin-top: 0;"><i class="fas fa-lightbulb"></i> Future: Ensemble Approach</h4>
+            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                <h4 style="margin-top: 0;"><i class="fas fa-lightbulb"></i> Future: Ensemble Approach</h4>
                 <p style="margin: 0;">Combining XGBoost + LightGBM + CatBoost predictions could further improve
                     robustness and reduce variance.</p>
             </div>
@@ -350,53 +349,52 @@
 
 <!-- Why Not Random Forest? -->
 <section class="bias-section">
-    <div class="card highlight-card"
-        style="background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 100%); color: white;">
-        <div class="card highlight-card"
-            style="background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 100%); color: white;">
-            <h2 style="color: white;"><i class="fas fa-times-circle"></i> Why Random Forest Failed</h2>
-            <div class="bias-grid" style="color: white;">
+    <div class="card highlight-card">
+        <h2><i class="fas fa-times-circle"></i> Why Random Forest Failed</h2>
+        <div class="bias-grid">
+            <div>
+                <h3>The Problem</h3>
                 <div>
-                    <h3 style="color: white;">The Problem</h3>
-                    <div>
-                        <p><i class="fas fa-times-circle"></i> <strong>Severe Overfitting:</strong> R² = {{
-                            "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7-day predictions (worse than
-                            predicting the mean)</p>
-                        <p><i class="fas fa-times-circle"></i> <strong>Poor Directional Accuracy:</strong> {{
-                            "%.1f"|format(random_forest_stats.avg_directional|default(0)) }}% average (worse than random
-                            50%)</p>
-                        <p><i class="fas fa-times-circle"></i> <strong>Highest MAPE:</strong> {{
-                            "%.2f"|format(random_forest_stats.avg_mape|default(0)) }}% average ({{
-                            "%.1f"|format(random_forest_stats.relative_mape_increase|default(0)) }}% worse than
-                            XGBoost's {{ "%.2f"|format(xgb_summary.avg_mape|default(0)) }}%)</p>
-                        <p><i class="fas fa-times-circle"></i> <strong>Cannot Extrapolate:</strong> RF averages training
-                            outputs, fails when prices exceed training range</p>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 style="color: white;">Why It Happens</h3>
-                    <div>
-                        <p><i class="fas fa-magnifying-glass"></i> <strong>Non-stationary data:</strong> Bitcoin price
-                            dynamics change over time</p>
-                        <p><i class="fas fa-magnifying-glass"></i> <strong>High noise:</strong> Crypto markets are
-                            extremely volatile with low signal-to-noise ratio</p>
-                        <p><i class="fas fa-magnifying-glass"></i> <strong>Return-based targets:</strong> RF struggles
-                            with small returns centered around 0</p>
-                        <p><i class="fas fa-magnifying-glass"></i> <strong>Limited expressiveness:</strong> Decision
-                            trees cannot capture complex patterns as well as gradient boosting</p>
-                    </div>
+                    <p><i class="fas fa-times-circle"></i> <strong>Severe Overfitting:</strong> R² = {{
+                        "%.2f"|format(random_forest_stats.worst_r2|default(0)) }} on 7-day predictions (worse than
+                        predicting the mean)</p>
+                    <p><i class="fas fa-times-circle"></i> <strong>Poor Directional Accuracy:</strong> {{
+                        "%.1f"|format(random_forest_stats.avg_directional|default(0)) }}% average (worse than random
+                        50%)</p>
+                    <p><i class="fas fa-times-circle"></i> <strong>Highest MAPE:</strong> {{
+                        "%.2f"|format(random_forest_stats.avg_mape|default(0)) }}% average ({{
+                        "%.1f"|format(random_forest_stats.relative_mape_increase|default(0)) }}% worse than
+                        XGBoost's {{ "%.2f"|format(xgb_summary.avg_mape|default(0)) }}%)</p>
+                    <p><i class="fas fa-times-circle"></i> <strong>Cannot Extrapolate:</strong> RF averages training
+                        outputs, fails when prices exceed training range</p>
                 </div>
             </div>
 
-            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-                <p style="margin: 0; font-weight: bold;">
-                    <i class="fas fa-lightbulb"></i> Conclusion: For cryptocurrency prediction, <strong>gradient
-                        boosting models (XGBoost, LightGBM, CatBoost) are significantly superior</strong> to Random
-                    Forest. Always prefer gradient boosting for financial time series with high volatility.
-                </p>
+            <div>
+                <h3>Why It Happens</h3>
+                <div>
+                    <p><i class="fas fa-magnifying-glass"></i> <strong>Non-stationary data:</strong> Bitcoin price
+                        dynamics change over time</p>
+                    <p><i class="fas fa-magnifying-glass"></i> <strong>High noise:</strong> Crypto markets are
+                        extremely volatile with low signal-to-noise ratio</p>
+                    <p><i class="fas fa-magnifying-glass"></i> <strong>Return-based targets:</strong> RF struggles
+                        with small returns centered around 0</p>
+                    <p><i class="fas fa-magnifying-glass"></i> <strong>Limited expressiveness:</strong> Decision
+                        trees cannot capture complex patterns as well as gradient boosting</p>
+                </div>
             </div>
         </div>
+
+        <div
+            style="background: rgba(234, 88, 12, 0.05); padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid rgba(234, 88, 12, 0.2);">
+            <p style="margin: 0; font-weight: bold; color: var(--text-color);">
+                <i class="fas fa-lightbulb" style="color: var(--bitcoin-orange);"></i> Conclusion: For cryptocurrency
+                prediction, <strong>gradient
+                    boosting models (XGBoost, LightGBM, CatBoost) are significantly superior</strong> to Random
+                Forest. Always prefer gradient boosting for financial time series with high volatility.
+            </p>
+        </div>
+    </div>
 </section>
 
 <div class="nav-buttons">

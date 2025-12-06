@@ -17,11 +17,14 @@
 <!-- Current Bitcoin Price -->
 <section class="live-status-section">
     <h2>Current Bitcoin Price</h2>
-    <div class="live-price-card">
+    <div class="card highlight-card" style="text-align: center;">
         <div class="price-display">
-            <span class="price-label">BTC/USD</span>
-            <span class="price-value" id="currentPrice">${{ "{:,.2f}".format(summary.current_price) }}</span>
-            <span class="price-timestamp">Last updated: {{ summary.timestamp }}</span>
+            <span class="price-label" style="color: var(--text-secondary);">BTC/USD</span>
+            <span class="price-value" id="currentPrice"
+                style="font-size: 2.5rem; font-weight: bold; color: var(--text-color);">${{
+                "{:,.2f}".format(summary.current_price) }}</span>
+            <span class="price-timestamp" style="color: var(--text-secondary);">Last updated: {{ summary.timestamp
+                }}</span>
         </div>
     </div>
 </section>
