@@ -16,18 +16,14 @@ from pathlib import Path
 from datetime import datetime
 
 # Add utils to path
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.predict_daily import main as generate_predictions
 from utils.blockchain_integration import store_prediction_onchain
 
 
 def main():
-    print("\n" + "="*70)
-    print("  GENERATE TODAY'S PREDICTION AND PUSH TO BLOCKCHAIN")
-    print("="*70)
-    print(f"  Date: {datetime.now().strftime('%Y-%m-%d')}")
-    print("="*70)
+    print(f"Generate today's prediction for date: {datetime.now().strftime('%Y-%m-%d')}")
     
     try:
         # Step 1: Generate predictions

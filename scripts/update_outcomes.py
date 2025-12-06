@@ -17,7 +17,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
 
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.data_fetcher import get_bitcoin_data
 
@@ -25,9 +25,7 @@ from utils.data_fetcher import get_bitcoin_data
 def update_outcomes():
     """Update actual outcomes for all predictions"""
     
-    print("\n" + "="*70)
-    print("  UPDATE ACTUAL OUTCOMES")
-    print("="*70)
+    print(f"Update actual outcomes for all predictions for date: {datetime.now().strftime('%Y-%m-%d')}")
     
     # Load prediction tracking CSV
     csv_path = Path('data/blockchain/prediction_tracking_demo.csv')
@@ -132,17 +130,8 @@ def update_outcomes():
     pending_3d = df['actual_3d'].isna().sum()
     pending_7d = df['actual_7d'].isna().sum()
     
-    print(f"\n{'='*70}")
-    print(f"  ✓ COMPLETE")
-    print(f"{'='*70}")
-    print(f"  Updated {updates_count} predictions")
-    print(f"  Saved to {csv_path}")
-    print(f"\n📊 Summary:")
-    print(f"  Total predictions: {len(df)}")
-    print(f"  Pending 1-day outcomes: {pending_1d}")
-    print(f"  Pending 3-day outcomes: {pending_3d}")
-    print(f"  Pending 7-day outcomes: {pending_7d}")
-    print(f"{'='*70}\n")
+    print(f"  Updated {updates_count} predictions, saved to {csv_path}")
+    print(f"\n Summary: Total predictions: {len(df)}, Pending 1-day outcomes: {pending_1d}, Pending 3-day outcomes: {pending_3d}, Pending 7-day outcomes: {pending_7d}")
     
     return 0
 

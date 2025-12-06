@@ -41,7 +41,7 @@ jobs:
     - name: Update outcomes with real Bitcoin prices
       run: |
         echo "📊 Updating prediction outcomes with real Bitcoin prices..."
-        python update_outcomes.py
+        python scripts/update_outcomes.py
 
     - name: Commit and push updated outcomes
       run: |

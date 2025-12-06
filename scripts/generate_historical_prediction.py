@@ -19,7 +19,7 @@ from pathlib import Path
 import joblib
 from datetime import datetime, timedelta
 
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.data_fetcher import get_bitcoin_data
 from utils.feature_engineering import engineer_technical_features, add_sentiment_features
@@ -29,11 +29,7 @@ from utils.blockchain_integration import store_prediction_onchain
 def generate_prediction_for_date(target_date_str: str):
     """Generate prediction for a specific historical date"""
     
-    print("\n" + "="*70)
-    print("  GENERATE HISTORICAL PREDICTION")
-    print("="*70)
-    print(f"  Target Date: {target_date_str}")
-    print("="*70)
+    print(f"Generate prediction for historical date: {target_date_str}")
     
     try:
         target_date = pd.to_datetime(target_date_str)
