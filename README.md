@@ -192,37 +192,38 @@ Example:
 curl http://localhost:5000/api/model-results | jq
 ```
 
-## ⛓️ Smart Contract Integration (Planned)
+## ⛓️ Blockchain Integration
 
-### Strategy: Daily Predictions on Polygon
+The system is fully integrated with **Moonbase Alpha** testnet to store predictions immutably.
 
-**Why Daily?**
-- ✅ Aligns with best model (1-day horizon)
-- ✅ Cost-effective: $3-6/month vs $96-480/month for 15-min
-- ✅ Easy comparison with test results
-- ✅ Clear, interpretable trends
+- **Contract Address**: `0x93b879c3b24AC7532Fd64C7F203D64Ab668bB42E`
+- **Network**: Moonbase Alpha (Testnet)
+- **Explorer**: [Moonscan](https://moonbase.moonscan.io/address/0x93b879c3b24AC7532Fd64C7F203D64Ab668bB42E)
 
-**What Gets Stored:**
-```solidity
-struct Prediction {
-    uint256 timestamp;
-    uint256 currentPrice;
-    uint256 predictedPrice1d;
-    uint256 predictedPrice3d;
-    uint256 predictedPrice7d;
-    uint256 actualPrice1d;
-    bytes32 modelHash;
-    string signalType;  // BUY/SELL/HOLD
-}
-```
+### 🚀 Quick Start
+1. **Setup Environment**:
+   Create `.env` file (see `.env.example`) and add your MetaMask private key:
+   ```bash
+   MOONBASE_RPC_URL=https://rpc.api.moonbase.moonbeam.network
+   CONTRACT_ADDRESS=0x93b879c3b24AC7532Fd64C7F203D64Ab668bB42E
+   MOONBASE_PRIVATE_KEY=your_private_key_here
+   ```
 
-**Benefits:**
-- 🔒 Immutable proof of performance
-- 👁️ Transparent verification
-- ⏰ Timestamped before outcomes
-- 📊 Historical tracking
+2. **Store Predictions**:
+   ```bash
+   # Push today's prediction to blockchain
+   python scripts/push_todays_prediction.py
+   ```
 
-See [SMART_CONTRACT_PLAN.md](SMART_CONTRACT_PLAN.md) for complete 24-page implementation guide.
+3. **Verify**:
+   - Visit `/live` in the web app to see blockchain proofs.
+   - Click transaction links to verify on Moonscan.
+
+### 🤖 Automation
+GitHub Actions are configured to automatically:
+1. Generate predictions daily at 6:00 PM UTC.
+2. Store them on-chain at 6:30 PM UTC.
+3. Update specific CSV files in the repo with transaction hashes.
 
 ## 🧪 How to Use
 
@@ -427,4 +428,4 @@ python webapp/app.py
 ---
 
 *Last Updated: 2025-10-12*
-*Status: Production Ready ✅*
+*Status: Production Ready*
