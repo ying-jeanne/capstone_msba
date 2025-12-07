@@ -264,20 +264,20 @@ def load_model_results():
 
 def get_live_data():
     """Get current Bitcoin price."""
+    # Priority 1: Fetch from GitHub if configured
+
     try:
-        result = get_latest_price()
-        if result['status'] == 'success':
+        # Use prediction_loader to fetch from GitHub (with caching)
+        latest_pred = prediction_loader.get_latest_prediction('daily')
+        if latest_pred and 'current_price' in latest_pred:
+            print(f"✓ Using price from GitHub: ${latest_pred['current_price']:,.2f}")
             return {
-                'price': result['price'],
-                'timestamp': result['timestamp'],
-                'source': 'yahoo_finance'
+                'price': float(latest_pred['current_price']),
+                'timestamp': latest_pred.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+                'source': 'github_csv'
             }
-        else:
-            print(f"⚠️  get_latest_price() returned error: {result.get('message')}")
     except Exception as e:
-        print(f"⚠️  Exception in get_live_data(): {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"⚠️  Failed to fetch from GitHub: {e}")
     
     # Fallback: Try to get latest from CSV as backup
     try:
@@ -294,13 +294,7 @@ def get_live_data():
     except Exception as e:
         print(f"⚠️  CSV backup failed: {str(e)}")
     
-    # Last resort mock data
-    print("⚠️  WARNING: Using outdated mock price!")
-    return {
-        'price': 104886.59,  # Updated to recent price
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'source': 'mock'
-    }
+    return None 
 
 
 def get_local_predictions():
