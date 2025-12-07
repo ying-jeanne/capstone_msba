@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Live Performance - Bitcoin Price Prediction{% endblock %}
+{% block title %}Live Performance - Verifiable Bitcoin Insights{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -21,7 +21,7 @@
         <div class="price-display">
             <span class="price-label" style="color: var(--text-secondary);">BTC/USD</span>
             <span class="price-value" id="currentPrice"
-                style="font-size: 2.5rem; font-weight: bold; color: var(--text-color);">${{
+                style="font-size: 2rem; font-weight: bold; color: var(--text-color);">${{
                 "{:,.2f}".format(summary.current_price) }}</span>
             <span class="price-timestamp" style="color: var(--text-secondary);">Last updated: {{ summary.timestamp
                 }}</span>
@@ -386,7 +386,6 @@
                             }
                         }
                     });
-
                     showStatus('✅ Chart created successfully with ' + validPredictions.length + ' data points!');
                     console.log('Chart instance created:', chart);
                 })

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Bitcoin Price Prediction - Main Stylesheet
+   Verifiable Bitcoin Insights - Main Stylesheet
    ========================================================================== */
 
 /* Variables - Modern Color Palette */
@@ -184,7 +184,7 @@ body {
 .navbar {
     background: #1e293b;
     color: white;
-    padding: 0.8rem 0;
+    padding: 0.5rem 0;
     box-shadow: var(--shadow-lg);
     position: sticky;
     top: 0;
@@ -199,7 +199,7 @@ body {
 }
 
 .nav-brand h1 {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     margin-bottom: 0.1rem;
 }
 
@@ -300,7 +300,7 @@ main {
 .page-header {
     text-align: center;
     margin-bottom: 3rem;
-    padding: 2rem 0;
+    padding: 1rem 0;
 }
 
 .page-header h1 {
@@ -491,7 +491,7 @@ section h2 {
 }
 
 .metric-value {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: bold;
     color: var(--primary-color);
     display: block;
@@ -722,7 +722,7 @@ section h2 {
     justify-content: center;
     margin: 0 auto 1rem;
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 1rem;
 }
 
 .pipeline-step h4 {
@@ -736,7 +736,7 @@ section h2 {
 }
 
 .pipeline-arrow {
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: var(--primary-color);
     font-weight: bold;
 }
@@ -779,7 +779,7 @@ section h2 {
 }
 
 .metric-icon {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     margin-bottom: 0.5rem;
 }
 
@@ -1402,8 +1402,8 @@ footer {
 /* Quick Stats */
 .quick-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 2rem;
     margin: 2rem 0 3rem;
 }
 
@@ -1423,12 +1423,12 @@ footer {
 }
 
 .stat-icon {
-    font-size: 3rem;
+    font-size: 2rem;
     margin-bottom: 1rem;
 }
 
 .stat-value {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
     color: var(--primary-color);
     margin-bottom: 0.5rem;
@@ -1705,7 +1705,7 @@ footer {
     background-position: center;
     background-attachment: fixed;
     /* Parallax effect */
-    padding: 4rem 2rem;
+    padding: 2.5rem 0 1rem;
     margin-bottom: 3rem;
     border-radius: 12px;
     overflow: hidden;
@@ -2480,8 +2480,8 @@ footer {
 }
 
 .innovation-card h3 {
-    font-size: 1.2rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
     color: var(--primary-color);
 }
 

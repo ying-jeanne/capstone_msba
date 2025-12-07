@@ -1,4 +1,4 @@
-# Bitcoin Price Prediction - ML Capstone Project
+# Verifiable Bitcoin Insights - ML Capstone Project
 
 A complete Bitcoin price prediction system using machine learning with Flask web interface and blockchain integration planning.
 

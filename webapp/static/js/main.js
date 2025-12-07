@@ -1,4 +1,4 @@
-// Bitcoin Price Prediction - Main JavaScript
+// Verifiable Bitcoin Insights - Main JavaScript
 
 // Auto-refresh price every 60 seconds
 let priceRefreshInterval;

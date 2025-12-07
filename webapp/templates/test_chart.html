@@ -1,16 +1,44 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Chart Test</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        #chartContainer { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        canvas { max-height: 400px; }
-        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        #chartContainer {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            max-height: 400px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
+
 <body>
     <h1>📈 Chart.js Test - Predicted vs Actual</h1>
     <div id="status"></div>
@@ -22,14 +50,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         const statusDiv = document.getElementById('status');
-        
+
         function showStatus(message, isError = false) {
             statusDiv.innerHTML = `<div class="status ${isError ? 'error' : 'success'}">${message}</div>`;
             console.log(message);
         }
-        
+
         showStatus('Loading data from API...');
-        
+
         fetch('http://localhost:5002/api/blockchain-predictions')
             .then(res => {
                 console.log('Response status:', res.status);
@@ -38,38 +66,38 @@
             .then(data => {
                 console.log('API Response:', data);
                 console.log('Total predictions:', data.predictions ? data.predictions.length : 0);
-                
+
                 if (data.status === 'success') {
                     const ctx = document.getElementById('predictionChart');
                     if (!ctx) {
                         showStatus('❌ Canvas element not found!', true);
                         return;
                     }
-                    
+
                     // Prepare data (filter predictions with actual data)
                     const validPredictions = data.predictions.filter(p => {
                         const hasActual = p.actual_1d != null && p.actual_1d !== '' && !isNaN(parseFloat(p.actual_1d));
                         console.log(`Prediction ${p.date}: actual_1d = ${p.actual_1d}, valid = ${hasActual}`);
                         return hasActual;
                     });
-                    
+
                     console.log('Valid predictions for chart:', validPredictions.length);
                     showStatus(`✅ Found ${validPredictions.length} valid predictions with outcomes`);
-                    
+
                     if (validPredictions.length === 0) {
                         ctx.parentElement.innerHTML = '<p style="text-align:center; color:#666; padding:2rem;">No predictions with outcomes available yet. Check back soon!</p>';
                         return;
                     }
-                    
+
                     const labels = validPredictions.map(p => p.date);
                     const predicted = validPredictions.map(p => parseFloat(p.pred_1d));
                     const actual = validPredictions.map(p => parseFloat(p.actual_1d));
 
                     console.log('Chart data prepared:', { labels: labels.length, predicted: predicted.length, actual: actual.length });
-                    console.log('Sample data:', { 
-                        date: labels[0], 
-                        pred: predicted[0], 
-                        actual: actual[0] 
+                    console.log('Sample data:', {
+                        date: labels[0],
+                        pred: predicted[0],
+                        actual: actual[0]
                     });
 
                     new Chart(ctx.getContext('2d'), {
@@ -109,8 +137,8 @@
                                 },
                                 tooltip: {
                                     callbacks: {
-                                        label: function(context) {
-                                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                        label: function (context) {
+                                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                         }
                                     }
                                 }
@@ -123,7 +151,7 @@
                                         text: 'Price (USD)'
                                     },
                                     ticks: {
-                                        callback: function(value) {
+                                        callback: function (value) {
                                             return '$' + value.toLocaleString();
                                         }
                                     }
@@ -137,7 +165,7 @@
                             }
                         }
                     });
-                    
+
                     showStatus(`✅ Chart created successfully with ${validPredictions.length} data points!`);
                     console.log('Chart created successfully!');
                 } else {
@@ -155,4 +183,5 @@
             });
     </script>
 </body>
+
 </html>

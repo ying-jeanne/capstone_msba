@@ -1,5 +1,5 @@
 """
-Bitcoin Price Prediction - Flask Web Application
+Verifiable Bitcoin Insights - Flask Web Application
 =================================================
 Group Project Presentation Website
 
@@ -755,7 +755,7 @@ def api_feature_definitions():
 
 if __name__ == '__main__':
     print("\n" + "=" * 70)
-    print("  BITCOIN PRICE PREDICTION - WEB APPLICATION")
+    print("  VERIFIABLE BITCOIN INSIGHTS - WEB APPLICATION")
     print("=" * 70)
     print("\nStarting Flask server...")
     print("Visit: http://localhost:5002")
