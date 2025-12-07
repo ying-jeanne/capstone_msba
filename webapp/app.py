@@ -488,16 +488,16 @@ def results():
                     if avg_mape < 2.5 and avg_dir > 52:
                         rating = "Excellent"
                         rating_icon = "fa-star"
-                        rating_color = "#10b981"
+                        rating_color = "var(--success-color)"
                         verdict = "Production Ready"
-                        verdict_color = "#10b981"
+                        verdict_color = "var(--success-color)"
                         verdict_icon = "fa-check-circle"
                     elif avg_mape < 3.5 and avg_dir > 50:
                         rating = "Good"
                         rating_icon = "fa-check-circle"
-                        rating_color = "#10b981"
+                        rating_color = "var(--success-color)"
                         verdict = "Good Option"
-                        verdict_color = "#10b981"
+                        verdict_color = "var(--success-color)"
                         verdict_icon = "fa-check-circle"
                     elif avg_mape < 4.5:
                         rating = "Acceptable"
