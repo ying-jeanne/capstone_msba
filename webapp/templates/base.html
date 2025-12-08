@@ -15,6 +15,51 @@
         content="Bitcoin, AI, Machine Learning, Price Prediction, Blockchain, Transparency, Verifiable, Crypto, Data Science, Web3, NUS MSBA">
     <meta name="author"
         content="Nourah Ahmed Algiffari, Liu Qichen, Om Sanjay Gorakhia, Pranay Samineni, Ying-Jeanne Wang, Zhao Qiya">
+    <link rel="canonical" href="{{ request.url }}">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Verifiable Bitcoin Insights",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Ying-Jeanne Wang",
+          "url": "https://yingjeanne.pythonanywhere.com/"
+        },
+        {
+            "@type": "Person",
+            "name": "Nourah Ahmed Algiffari"
+        },
+        {
+            "@type": "Person",
+            "name": "Liu Qichen"
+        },
+        {
+            "@type": "Person",
+            "name": "Om Sanjay Gorakhia"
+        },
+        {
+            "@type": "Person",
+            "name": "Pranay Samineni"
+        },
+        {
+            "@type": "Person",
+            "name": "Zhao Qiya"
+        }
+      ],
+      "description": "Verifiable Bitcoin Insights provides transparent, AI-driven Bitcoin price predictions verified on the blockchain. NUS MSBA Capstone Project."
+    }
+    </script>
 
     <!-- Open Graph / Facebook -->
     <meta property="og:image" content="{{ url_for('static', filename='images/social_banner.png', _external=True) }}">

@@ -13,7 +13,7 @@ To run:
     Visit: http://localhost:5000
 """
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_from_directory
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -65,6 +65,19 @@ USE_GITHUB = True  # Set to True to fetch from GitHub (for PythonAnywhere), Fals
 @app.route('/googlecd1cc85790141e53.html')
 def google_verification():
     return "google-site-verification: googlecd1cc85790141e53.html"
+
+
+# SEO Routes (robots.txt, sitemap.xml)
+@app.route('/robots.txt')
+def robots():
+    """Serve robots.txt from static folder."""
+    return send_from_directory(app.static_folder, 'robots.txt')
+
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """Serve sitemap.xml from static folder."""
+    return send_from_directory(app.static_folder, 'sitemap.xml')
 
 # Initialize prediction loader (fetches from GitHub with caching)
 prediction_loader = PredictionLoader()
