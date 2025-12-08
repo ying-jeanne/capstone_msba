@@ -61,6 +61,11 @@ RESULTS_DIR = Path(__file__).parent.parent / 'results'
 USE_DEMO_DATA = True  # Set to False when using real blockchain data
 USE_GITHUB = True  # Set to True to fetch from GitHub (for PythonAnywhere), False for local development
 
+# Google Verification Route
+@app.route('/googlecd1cc85790141e53.html')
+def google_verification():
+    return "google-site-verification: googlecd1cc85790141e53.html"
+
 # Initialize prediction loader (fetches from GitHub with caching)
 prediction_loader = PredictionLoader()
 
