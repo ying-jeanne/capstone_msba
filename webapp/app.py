@@ -264,8 +264,6 @@ def load_model_results():
 
 def get_live_data():
     """Get current Bitcoin price."""
-    # Priority 1: Fetch from GitHub if configured
-
     try:
         # Use prediction_loader to fetch from GitHub (with caching)
         latest_pred = prediction_loader.get_latest_prediction('daily')
