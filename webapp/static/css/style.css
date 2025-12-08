@@ -1811,7 +1811,6 @@ footer {
 /* Metrics Dashboard with Background */
 .metrics-dashboard-bg {
     position: relative;
-    padding: 2rem;
     border-radius: 12px;
     overflow: hidden;
 }
