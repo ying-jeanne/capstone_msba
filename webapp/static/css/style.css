@@ -2706,47 +2706,6 @@ footer {
     color: var(--text-secondary);
 }
 
-/* Repository Section */
-.repo-section {
-    margin: 3rem 0;
-}
-
-.repo-card {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    padding: 3rem 2rem;
-    border-radius: 20px;
-    text-align: center;
-    box-shadow: 0 10px 25px rgba(51, 65, 85, 0.3);
-}
-
-.repo-card h2 {
-    color: white;
-    margin-bottom: 1rem;
-}
-
-.repo-card p {
-    margin-bottom: 2rem;
-    opacity: 0.9;
-}
-
-.repo-button {
-    display: inline-block;
-    padding: 1rem 2rem;
-    background: white;
-    color: var(--primary-color);
-    text-decoration: none;
-    border-radius: 12px;
-    font-weight: 700;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.repo-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-}
-
 .section-intro {
     text-align: center;
     color: var(--text-secondary);
