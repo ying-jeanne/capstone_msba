@@ -2794,3 +2794,98 @@ footer {
 .margin-top-2 {
     margin-top: 2rem !important;
 }
+
+/* Team Section */
+.team-section {
+    margin: 4rem 0;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.team-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    /* For link cards */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.team-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.team-avatar {
+    width: 80px;
+    height: 80px;
+    background: #e2e8f0;
+    color: var(--text-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0 auto 1rem;
+    border: 3px solid white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.team-avatar.highlight {
+    background: var(--primary-color);
+    color: white;
+}
+
+.team-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+    color: var(--primary-color);
+}
+
+.team-role {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Special styling for the linked card */
+.team-link {
+    border-color: var(--primary-color);
+    background: #f8fafc;
+}
+
+.team-link:hover {
+    background: white;
+}
+
+.external-link-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    opacity: 0.6;
+}
+
+.team-link:hover .external-link-icon {
+    opacity: 1;
+}
+
+.section-intro-small {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
