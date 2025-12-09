@@ -62,7 +62,7 @@
     /* Dark Slate (Matches Navbar) */
     --primary-dark: #0f172a;
     /* Darker Slate */
-    --secondary-color: #f59e0b;
+    --secondary-color: #ea580c;
     /* Vibrant amber */
     --bitcoin-orange: #ea580c;
     /* Bitcoin Dark Orange */
@@ -213,7 +213,6 @@ body {
     list-style: none;
     gap: 0;
     background: transparent;
-    padding: 0.5rem;
     border-radius: 12px;
     backdrop-filter: blur(10px);
 }
@@ -2001,13 +2000,11 @@ footer {
     }
 
     .nav-menu {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 0.5rem;
         width: 100%;
-    }
-
-    .nav-tab {
-        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
     }
 
     .nav-icon {
@@ -2526,7 +2523,7 @@ footer {
 .timeline::before {
     content: '';
     position: absolute;
-    left: 50px;
+    left: calc(100px + 1.5rem + 29px);
     top: 0;
     bottom: 0;
     width: 3px;
@@ -2544,6 +2541,7 @@ footer {
 
 .timeline-time {
     text-align: right;
+    padding-top: 1rem;
     font-weight: 700;
     color: var(--primary-color);
     font-size: 1rem;
@@ -2768,7 +2766,7 @@ footer {
     }
 
     .timeline::before {
-        left: 30px;
+        left: calc(80px + 1rem + 24px);
     }
 
     .timeline-item {
@@ -2784,6 +2782,11 @@ footer {
 
     .timeline-time {
         font-size: 0.9rem;
+    }
+
+    .nav-tab {
+        margin: 0 0.5rem;
+        padding: 0.1rem 0.5rem;
     }
 }
 
