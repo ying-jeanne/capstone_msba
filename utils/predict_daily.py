@@ -28,13 +28,32 @@ def load_models(models_dir):
     models = {}
     horizons = ['1d', '3d', '7d']
     
+    import json
+    
     for horizon in horizons:
         model_path = models_dir / f'xgboost_{horizon}.json'
         if not model_path.exists():
             raise FileNotFoundError(f"Model not found: {model_path}")
         
-        model = xgb.Booster()
+        # Use XGBRegressor
+        model = xgb.XGBRegressor()
         model.load_model(str(model_path))
+        
+        # CRITICAL FIX: Manually extract and set base_score from JSON file
+        # XGBoost < 2.0 often fails to load base_score correctly from JSON
+        try:
+            with open(model_path, 'r') as f:
+                file_content = json.load(f)
+                # Path: learner -> learner_model_param -> base_score
+                bs_str = file_content['learner']['learner_model_param']['base_score']
+                # Remove brackets '[]' if present
+                bs_str = bs_str.strip('[]')
+                base_score = float(bs_str)
+                # Apply to model
+                model.set_params(base_score=base_score)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not set base_score manually for {horizon}: {e}")
+            
         models[horizon] = model
     
     # Load scaler and feature columns
@@ -65,9 +84,8 @@ def generate_predictions(models, latest_features_scaled, current_price, feature_
     
     for horizon, model in models.items():
         # Predict return
-        # Create DMatrix for prediction
-        dmatrix = xgb.DMatrix(latest_features_scaled, feature_names=feature_cols)
-        predicted_return = model.predict(dmatrix)[0]
+        # model.predict() with XGBRegressor takes numpy array directly
+        predicted_return = model.predict(latest_features_scaled)[0]
         
         # Convert return to price
         predicted_price = current_price * (1 + predicted_return)
