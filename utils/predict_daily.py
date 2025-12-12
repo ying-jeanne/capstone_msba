@@ -33,7 +33,7 @@ def load_models(models_dir):
         if not model_path.exists():
             raise FileNotFoundError(f"Model not found: {model_path}")
         
-        model = xgb.XGBRegressor()
+        model = xgb.Booster()
         model.load_model(str(model_path))
         models[horizon] = model
     
@@ -59,13 +59,15 @@ def prepare_latest_data(df, feature_cols, scaler):
     return latest_features_scaled, current_price, current_timestamp
 
 
-def generate_predictions(models, latest_features_scaled, current_price):
+def generate_predictions(models, latest_features_scaled, current_price, feature_cols):
     """Generate predictions for all horizons"""
     predictions = {}
     
     for horizon, model in models.items():
         # Predict return
-        predicted_return = model.predict(latest_features_scaled)[0]
+        # Create DMatrix for prediction
+        dmatrix = xgb.DMatrix(latest_features_scaled, feature_names=feature_cols)
+        predicted_return = model.predict(dmatrix)[0]
         
         # Convert return to price
         predicted_price = current_price * (1 + predicted_return)
@@ -170,7 +172,7 @@ def main():
         
         # Step 5: Generate predictions
         print("\n[STEP 5] Generating predictions...")
-        predictions = generate_predictions(models, latest_features_scaled, current_price)
+        predictions = generate_predictions(models, latest_features_scaled, current_price, feature_cols)
         
         print(f"\n{'='*70}")
         print("  PREDICTIONS")

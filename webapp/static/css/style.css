@@ -1719,6 +1719,7 @@ footer {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
+    opacity: 0.8;
     /* Dark overlay for text readability */
     z-index: 1;
 }
@@ -1727,7 +1728,7 @@ footer {
 .page-header-with-bg p {
     position: relative;
     z-index: 2;
-    color: white !important;
+    color: var(--primary-color);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
