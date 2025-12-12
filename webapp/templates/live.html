@@ -95,6 +95,7 @@
             </thead>
             <tbody>
                 {% for pred in blockchain_predictions|reverse %}
+                {% if pred.date not in ['2025-12-09', '2025-12-10', '2025-12-11'] %}
                 <!-- 1-Day Row -->
                 {% set row_class = 'success' if pred.mape_1d and pred.mape_1d < 2 else 'warning' if pred.mape_1d and
                     pred.mape_1d < 5 else 'error' if pred.mape_1d else 'pending' %} <tr class="{{ row_class }}">
@@ -140,6 +141,7 @@
                         </a>
                     </td>
                     </tr>
+                    {% endif %}
                     {% endfor %}
             </tbody>
         </table>
