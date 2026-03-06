@@ -1,2 +1,2 @@
-timestamp,current_price,pred_1d_price,pred_1d_return,pred_1d_change_pct,pred_3d_price,pred_3d_return,pred_3d_change_pct,pred_7d_price,pred_7d_return,pred_7d_change_pct,data_source,generated_at,tx_hash,block_number,prediction_id,blockchain_stored,blockchain_timestamp
-2026-03-05,72441.0703125,72489.58538592048,0.0006697134,0.06697134,72578.82617779076,0.0019016729,0.1901673,72699.5007302966,0.0035674227,0.35674226,yahoo,2026-03-05T03:41:39.520597,74c75e45f8982444c929a59725a6ec9b33adb5181c899e2821447d2b6f45fd61,15453833,146,True,2026-03-05T03:57:00
+timestamp,current_price,pred_1d_price,pred_1d_return,pred_1d_change_pct,pred_3d_price,pred_3d_return,pred_3d_change_pct,pred_7d_price,pred_7d_return,pred_7d_change_pct,data_source,generated_at
+2026-03-06,71122.3828125,71170.014737444,0.0006697134,0.06697134,71257.63102658093,0.0019016729,0.1901673,71376.10886908136,0.0035674227,0.35674226,yahoo,2026-03-06T03:40:42.817227
